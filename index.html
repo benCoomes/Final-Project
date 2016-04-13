@@ -1,0 +1,150 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en"><head>
+      <title>Browser Control</title>
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<!--script src='twistgamepad.js'></script-->
+
+      <script type="text/javascript">
+		var robot_id="2blink";
+        var robot_cid=4;
+
+         var command = "init"
+         var old_command=command;
+         var basetime = new Date();
+         var keyPressed = {};
+         var lspeed = "1"
+         var aspeed = "1"
+         var lx = "&lx="
+         var ly = "&ly="
+         var lz = "&lz="
+         var lxn = "&lx=-"
+         var lyn = "&ly=-"
+         var lzn = "&lz=-"
+         var ax = "&ax="
+         var ay = "&ay="
+         var az = "&az=-"
+         var axn = "&ax=-"
+         var ayn = "&ay=-"
+         var azn = "&az="
+
+
+
+
+         // Set the BaseURL to the URL of your camera
+         var BaseURL = "http://castara.clemson.edu";
+
+         // DisplayWidth & DisplayHeight specifies the displayed width & height of the image.
+         // You may change these numbers, the effect will be a stretched or a shrunk image
+         var DisplayWidth = "600";
+         var DisplayHeight = "500";
+
+         // This is the path to the image generating file inside the camera itself
+         var File = ":8081/stream?topic=/robot_"+robot_cid+"/image?width=600?height=500?quality=100";
+
+         // No changes required below this point
+
+         var output = "";
+	 {
+            // If not IE for Windows use the browser itself to display
+            theDate = new Date();
+            output = '<IMG SRC="';
+            output += BaseURL;
+            output += File;
+            output += '&dummy=' + theDate.getTime().toString(10);
+            output += '" HEIGHT="';
+            output += DisplayHeight;
+            output += '" WIDTH="';
+            output += DisplayWidth;
+            output += '" ALT="MJPEG non IE">';
+         }
+
+         function httpGet(theUrl)
+         {
+            var xmlHttp = null;
+            xmlHttp = new XMLHttpRequest();
+            xmlHttp.open( "GET", BaseURL + ":8082/twist?id="+robot_id+"&"+theUrl, true );
+            xmlHttp.send( null );
+            return  
+         }
+
+         document.addEventListener('keydown', function(e) {
+                             keyPressed[e.keyCode] = true;
+                             }, false);
+         document.addEventListener('keyup', function(e) {
+                             keyPressed[e.keyCode] = false;
+                             }, false);
+
+         function init_all(){
+            document.getElementById("text3").innerHTML=output;
+            gameLoop();
+         }
+
+         function gameLoop() {
+            var now = new Date();
+            var tt = (now.getTime()-basetime.getTime())/1000;
+            //arrow keys to move forward and turn left/right 
+            if (keyPressed["37"] && keyPressed["39"]) {
+               command=""
+            }
+            else if (keyPressed["38"] && keyPressed["40"]) {
+               command=""
+            }
+            else if (keyPressed["37"] && keyPressed["38"]) {
+               command=azn+aspeed+lx+lspeed
+            }
+            else if (keyPressed["37"] && keyPressed["40"]) {
+               command=azn+aspeed+lxn+lspeed
+            }
+            else if (keyPressed["39"] && keyPressed["38"]) {
+               command=az+aspeed+lx+lspeed
+            }
+            else if (keyPressed["39"] && keyPressed["40"]) {
+               command=az+aspeed+lxn+lspeed
+            }
+            else if (keyPressed["37"]) {
+               command=azn+aspeed;
+            }
+            else if (keyPressed["38"]) {
+               command=lx+lspeed;
+            }
+            else if (keyPressed["39"]) {   
+               command=az+aspeed;
+            }
+            else if (keyPressed["40"]) {
+               command=lxn+lspeed;
+            }
+            else {
+               command=""
+            }
+
+            //up-down by the "w" and the "s" keys   
+            if (keyPressed["87"]) {
+               command=command+lz+lspeed;
+            }
+            else if (keyPressed["83"]) {
+               command=command+lzn+lspeed;
+            }
+
+            if (old_command != command){
+               httpGet(command);
+               old_command=command;
+            }
+
+            document.getElementById("text4").innerHTML= command
+            document.getElementById("text2").innerHTML=" time ="+tt.toString()
+            setTimeout(gameLoop, 30);
+         }
+
+         </script>
+   </head>
+
+   <body onload="init_all();">
+
+
+      <b id="text2"> time =18.899</b><br>
+      <b id="text3"><img src="http://castara.clemson.edu:8081/stream?topic=/robot_4/image?width=600?height=500?quality=100" alt="MJPEG non IE" height="500" width="600"></b><br>
+      <b id="text4"></b><br>
+      <b id="text5"></b><br>
+   
+
+
+</body></html>

@@ -1,0 +1,94 @@
+Names:  Brett George   C43712041
+        Sarah Malick   C48223658
+		  Caleb Priester C96106650
+Asg:    Final Project
+Date:   24 April 2015
+
+HOW TO RUN:
+Client: ./robotClient <Server IP/hostname> <Server Port> <Robot ID> <L> <N>
+
+Server: ./robotServer <Server Port> <Robot IP/hostname> <Robot ID> <Image ID>
+
+KNOWN PROBLEMS:
+   Due to the inherent latency when writing programs that communicate over the 
+   internet, the shapes that are made by our robot when the program is run are 
+   not 100% precise.
+
+
+DESIGN:
+   For a full description of the protocol implemented for communication between our
+   client, the middleware, and the robot, see the attached PROTOCOLREADME.pdf.
+
+   In brief, the client sends a request to the middleware over UDP.  This request is
+   guaranteed to fit in one packet, so only one packet is sent.  When the middleware
+   recieves the request, it interprets it and creates an appropriate HTTP GET 
+   request, which it then sends to the robot over TCP.  The robot will complete the 
+   specified task and then send data back to the middleware over TCP.  The middleware
+   contains the logic for determining the number of packets necessary to send the 
+   data back to the client over UDP, and then breaks up the message if necessary and
+   sends the packets to the client over UDP.  These packets hold segment numbers, so 
+   that the client can piece them back together when the packets are received.  Since
+   UDP is unreliable, and the client needs to know that the job got done, there are
+   timeouts set for waiting on responses, and if these timeouts are reached, the 
+   client will end in an error.  Each middleware is linked to one robot, and the 
+   client must supply the correct robot ID in order to gain access to the robot as a
+   means of security.
+
+   The logic for tracing a polygon is as follows:
+   Take an initial screenshot (get GPS, DGPS, lasers, and an image).
+   For the number of sides:
+      Move forward L meters.
+      Take a screenshot.
+      Turn pi - (N - 2)pi/N radians. (This could be + or - depending on if 
+                                     clockwise motion is specified.)
+
+   In order to properly time movements, we took advantage of itimers and 
+   sleep/usleep.  Since the minimum L that could be travelled by the robot is one
+   meter, and the speed requested by the client is a constant one meter per second,
+   all robot motions must occur in at least one second.  Because of this, we were
+   able to set our timeout for an acknowledgment from the robot that the motion had 
+   occurred to slightly less than one second.  This way, the timeout for waiting on 
+   a reply from the robot would always end before the time came for the client to 
+   request for the robot to stop.  An itimer was used in order to be able to set 
+   that timeout to double precision.  In order to properly time the stop commands on
+   the client side, there is a method called getTime that gets the current time to 
+   microsecond precision, and this method was called before and after the code for 
+   sending a request from the client to the middleware.  This is necessary since the
+   code for sending that request could take up to .95 seconds, and in order to 
+   maximize precision, the robot needs to take that time into consideration when
+   deciding how long to wait before requesting the robot to stop.  Sleep/usleep were
+   employed in order to have the client wait L - the time spent sending the MOVE 
+   request to the middleware.  Sleep allows the client to wait whole seconds, and 
+   usleep allows the client to wait for the extra fraction of a second.  For
+   example:
+   If the client wants the robot to move five meters, and the client hangs up 
+   waiting for an acknowedgment from the middleware that the request went through
+   for .05 seconds, then the client should use sleep to wait 4 seconds and usleep
+   to wait .95 seconds before sendiing the stop request.  This will result in the 
+   client having waited the appropriate five seconds necessary for the robot to 
+   travel five meters before sending the STOP request.  Due to the inherent latency
+   of communicating over a network, the robot will not have moved exactly five 
+   meters, but this timing method produces a result that is close as we could get.
+   
+   The same method for timiing was used when requesting a TURN commmand as well.  
+   Since the maximum number of sides specified is eight, the minimum angle that the
+   robot would need to turn in pi/4, which wh=ooulld occur when drawing an eight-
+   sided shape.  In order to ensure that all robot turning motions must occur in at 
+   least one second, we made the TURN request be a constant pi/4 radians per second,
+   which allowed us to implement the exact same timing logic as above.
+
+   The format of the files created when a screenshot is captured are image-<num>.jpg
+   for each image and poosition-<num>.txt for all other data.  Position files are
+   formatted such that each line has a different portion of the data, and has the
+   format (<type of data (i.e. GPS, DGPS, LASERS)> <data retrieved from robot>\n).
+
+   There is a method in the client with all logic for getting a screenshot and saving
+   the returned data called getScreenshot.  This method uses FILE* in order to create
+   the files to store the incoming data, and a global variable fileCount was used to
+   keep track of the number of files already made for correct file naming.  When the
+   client sends a request for data to the middleware (a larger timeout is used since
+   more data is required to be transferred) using the sendRequest command, the client
+   returns a VOID* to the start of the reconfigured data and updates an int pointer
+   to hold the length of that data for the getSnapshot method to be able to correctly
+   write the data to a file.  The writing is done using fwrite, since this allows for
+   error checking.
