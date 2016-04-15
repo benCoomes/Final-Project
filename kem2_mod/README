@@ -1,0 +1,15 @@
+Zachary DeRose
+Kelly Martin
+Matthew Pfister
+
+KNOWN PROBLEMS
+	None. We feel as if we thoroughly tested our code and that our implementation succeeds fully in accomplishing the goal of this assignment.
+
+DESIGN
+	We designed our implementation in accordance with the attached Protocol.pdf document included in this deliverable. In our video, Matthew explains some of the things that make our code unique. In hopes of removing redundancies, I will be providing a BRIEF description of our design.
+
+	RobotClient.c:
+		This program is the user-facing program. The user supplies through command line arguments the relevant information for this client. This includes the length of a side of the polygon and the number of sides of the first polygon to be traversed, as well as connection information for the destination middle-ware component, and robot-related information. Once we receive this data from the use, we turn this user-defined data into a series of commands (GET IMAGE, MOVE, TURN, STOP, etc as defined in page 2 of the provided protocol pdf) and transmit these commands via UDP messages to the middleware.
+
+	RobotServer.c:
+		This program acts as middle ware between RobotClient, the user-facing program, and the robot itself. It acts both as a UDP server and a TCP client, taking received messages from UDP side and turning these into TCP requests to the robot itself. The middleware provides to the robot useable robot commands in the form of appropriately formatted URIs and then sends to the user-facing client the appropriate response data, in the form of a request response to the output log, or an image in the client's directory.
