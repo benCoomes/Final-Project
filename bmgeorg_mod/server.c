@@ -17,6 +17,9 @@
 
 #define MAXLINE 1000
 
+//Below added - Ben
+#define DEBUG
+
 //Method Signatures
 char* getRobotID(char* msg);
 uint32_t getRequestID(char* msg);
