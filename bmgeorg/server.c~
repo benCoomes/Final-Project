@@ -17,9 +17,6 @@
 
 #define MAXLINE 1000
 
-//Below added - Ben
-#define DEBUG
-
 //Method Signatures
 char* getRobotID(char* msg);
 uint32_t getRequestID(char* msg);
@@ -151,8 +148,8 @@ int main(int argc, char *argv[])
 		plog("http body of %d bytes", httpBodyLength);
 		plog("http body: ");
 		#ifdef DEBUG
-		for(j = 0; j < httpBodyLength; j++)
-			fprintf(stderr, "%c", httpBody[j]);
+   	    for(j = 0; j < httpBodyLength; j++)
+	    	fprintf(stderr, "%c", httpBody[j]);
 		#endif
 		
 		//Send response back to the UDP client
@@ -196,7 +193,7 @@ char* generateHTTPRequest(char* robotAddress, char* robotID, char* requestStr, c
 		sprintf(URI, "/twist?id=%s&lx=0",robotID);
 	}
 	else if(strstr(requestStr, "GET IMAGE") != NULL) {
-		sprintf(URI, "/snapshot?topic=/robot_%s/image&width=600&height=500", imageID);
+		sprintf(URI, "/snapshot?topic=/robot_%s/image?width=600?height=500", imageID);
 	}
 	else if(strstr(requestStr, "GET GPS") != NULL) {
 		sprintf(URI, "/state?id=%s",robotID);

@@ -220,7 +220,7 @@ void convertCommand(char* recvRobotCommand, char** sendRobotCommand, char** send
     char* parser;
 	// For GET IMAGE...
     if(strstr(recvRobotCommand, "GET IMAGE")) {
-        sprintf(*sendRobotCommand, "%s%hu%s", "/snapshot?topic=/robot_", imageID, "/image?width=600?height=500");
+        sprintf(*sendRobotCommand, "%s%hu%s", "/snapshot?topic=/robot_", imageID, "/image&width=600&height=500");
         sprintf(*sendRobotIP, "%s%s", robotIP, ":8081");
 		  robotServPort = 8081;
     }
