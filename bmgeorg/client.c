@@ -11,7 +11,6 @@
 
 void tracePolygon(int numSides, bool clockwise);
 void getSnapshot();
-double getTime();
 
 int L; //L >= 1
 int N; //4 <= N <= 8
@@ -169,13 +168,6 @@ void getSnapshot() {
 
    free(data);
    fclose(positionFile);
-}
-
-double getTime() {
-   struct timeval curTime;
-   (void) gettimeofday(&curTime, (struct timezone *)NULL);
-   return (((((double) curTime.tv_sec) * 10000000.0)
-      + (double) curTime.tv_usec) / 10000000.0);
 }
 
 int main(int argc, char** argv) {

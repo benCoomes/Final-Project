@@ -1,0 +1,6 @@
+# add files to git ignore below #
+#################################
+position*.txt
+*.jpg
+*.tar
+*.data

@@ -15,4 +15,6 @@ void _plog(const char *fmt, ...)
 
 #define plog(fmt, ...) _plog(fmt"\n", ##__VA_ARGS__)
 
+double getTime();
+
 #endif
