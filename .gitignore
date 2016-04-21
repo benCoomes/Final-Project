@@ -4,3 +4,5 @@ position*.txt
 *.jpg
 *.tar
 *.data
+robotClient
+robotServer

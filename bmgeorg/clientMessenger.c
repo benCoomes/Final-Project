@@ -25,6 +25,8 @@ void setTimer(double seconds);
 void stopTimer();
 void timedOut(int ignored);
 
+double getTime();
+
 void* recvMessage(int ID, int* messageLength);
 int extractMessageID(void* message);
 int extractNumMessages(void* message);
@@ -54,6 +56,7 @@ void timedOut(int ignored) {
 */
 void* sendRequest(char* requestString, int* responseLength, double timeout) {
 	static uint32_t ID = 0;
+	double timeSpent;
 	
 	//4 bytes for ID + robotID length + 1 byte for null char + requestString length + 1 byte for null char
 	int requestLen = 4+strlen(robotID)+1+strlen(requestString)+1;
@@ -68,6 +71,9 @@ void* sendRequest(char* requestString, int* responseLength, double timeout) {
 	//insert request string
 	memcpy(((char*)request)+4+strlen(robotID)+1, requestString, strlen(requestString)+1);
 	
+	//start timing
+	timeSpent = getTime();
+
 	//send request
 	int numBytesSent = send(sock, request, requestLen, 0);
 	if(numBytesSent < 0)
@@ -127,6 +133,10 @@ void* sendRequest(char* requestString, int* responseLength, double timeout) {
 	
 	//stop timer
 	stopTimer();
+
+	// finish timing, publish report
+	timeSpent = getTime() - timeSpent;
+	fprintf(stdout, "%s:%lf\n", requestString, timeSpent);
 	
 	int PAYLOAD_SIZE = RESPONSE_MESSAGE_SIZE - 12;
 	*responseLength = (numMessages-1)*PAYLOAD_SIZE + (lastMessageLength-12);

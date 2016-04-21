@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <sys/time.h>
-#define DEBUG
+
 void _quit(const char *fmt, ...) {
     va_list arg;
     va_start(arg, fmt);
