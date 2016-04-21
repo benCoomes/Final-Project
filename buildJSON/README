@@ -1,0 +1,16 @@
+buildJSON.py
+Ben Coomes
+
+Description: Made specifically for bmgeorg's program. Given the output of 
+robotClient, this script identifies key:value pairs that represent a request
+sent to the middleware and the time it takes to process the request. It then forms
+a JSON file with the collected pairs. 
+
+Currently, the script is incomplete and only prints out the collected pairs.
+
+Usage: To pipe the output directly to the script from bmgeorg directory:
+ ./robotClient 127.0.0.1 8000 1 2 5 | python ../buildJSON/buildJSON.py
+
+More generically: 
+./robotClient <robot client parameters> | python path/to/buildJSON.py
+
