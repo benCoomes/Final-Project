@@ -1,4 +1,7 @@
 import sys
+import os
+import json
+import datetime
 
 superdict = {'MOVE' : {},
              'STOP' : {},
@@ -29,3 +32,13 @@ for key, subdict in superdict.items():
         print "\t%s : %r" % (item_name, item)
 
     print ""
+
+path = "./test_data"
+if not os.path.exists(path):
+    os.makedirs(path)
+
+now = datetime.datetime.now().isoformat()
+filename = "output_" + now + ".json"
+f = open(os.path.join(path, filename), 'w')
+f.write(json.dumps(superdict))
+f.close()
