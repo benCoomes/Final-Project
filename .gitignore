@@ -7,3 +7,4 @@ position*.txt
 *.swp
 robotClient
 robotServer
+dummyServer
