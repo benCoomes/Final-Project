@@ -21,6 +21,27 @@ const double COMMAND_TIMEOUT = 0.95;
 const double DATA_TIMEOUT = 5.0;
 
 void tracePolygon(int numSides, bool clockwise) {
+/*~ need to build the supermessage body
+    send it to the server
+    recieve confirmation message
+    recieve all other incoming data 
+
+    perhaps this could be broken up like this:
+    tracePolygon(...){
+        sendTraceCommands(...){
+            build commands
+            send commands
+            confirm successful arrival, or try again if failure
+        }
+        recieveTrace(...){
+            recieve a message
+            use header to decided how to process next message(s)
+            perform file IO
+            end when FINISHED protocol parameters for finishing are met (TDB) 
+            or when timeout occurs (print error that all data may not be present)
+        }
+    }
+*/
    int dummy;
    double timeSpent;
    double sleepTime;

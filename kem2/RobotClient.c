@@ -11,7 +11,7 @@
 
 #include "Robot.h"
 
-#define TIMEOUT 5.0
+#define TIMEOUT 10.0
 #define MESSAGESIZE 1000
 
 // ~~~ Function Prototypes
@@ -180,6 +180,8 @@ void runCommands(unsigned int polygonSides, unsigned int numCommands) {
         *(unsigned int*)parser = htonl(commID); parser += 4;           // 1) Insert the randomized communication ID
         strcpy((char*)parser, robotID); parser += strlen(robotID) + 1; // 2) Insert the robot ID
         strcpy((char*)parser, commands[n]);                            // 3) Insert the command
+
+        //TODO start timer here
 
         // ~~~ The message to the middleware
         if (sendto(sock, messageBody, messageSize, 0, (struct sockaddr *) &robotServAddr, sizeof(robotServAddr)) != messageSize)
