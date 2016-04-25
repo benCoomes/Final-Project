@@ -3,14 +3,18 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdbool.h>
 #include <unistd.h>
 #include <time.h>
 #include <sys/time.h>
 #include <math.h>
 
-void tracePolygon(int numSides, bool clockwise);
+void tracePolygon(int numSides, int sideLen, bool clockwise);
 void getSnapshot();
+void sendTraceCommands(int numSides, int sideLen, bool clockwise);
+void recieveTraceCommands(int numSides);
+char *addSnapshot(char* buffer);
 double getTime();
 
 int L; //L >= 1
@@ -20,7 +24,7 @@ int fileCount = 0;
 const double COMMAND_TIMEOUT = 0.95;
 const double DATA_TIMEOUT = 5.0;
 
-void tracePolygon(int numSides, bool clockwise) {
+void tracePolygon(int numSides, int sideLen,  bool clockwise) {
 /*~ need to build the supermessage body
     send it to the server
     recieve confirmation message
@@ -80,8 +84,8 @@ void tracePolygon(int numSides, bool clockwise) {
       plog("Time spent sending request and getting response: %lf", timeSpent);
 
       //Calculate wait time (L - time spent in sendRequest).
-      if(L > timeSpent) {
-         sleepTime = L - timeSpent;
+      if(sideLen > timeSpent) {
+         sleepTime = sideLen - timeSpent;
          
          plog("waiting for %lf seconds", sleepTime);
          
@@ -138,6 +142,68 @@ void tracePolygon(int numSides, bool clockwise) {
       sendRequest("STOP", &dummy, COMMAND_TIMEOUT);
       plog("sent stop command");
    }
+}
+
+void sendTraceCommands(int numSides, int sideLen, bool clockwise){
+   // commandBuffer has the following format: [command 0 length][command 0][command 1 length][command 1]...[0]
+   char *commandBuffer = (char*)malloc(numSides * 120 + 40);
+   char *command = (char*)malloc(50);
+   char *copy = (char*)malloc(50);
+
+   // determine the turn angle and speed
+   double turnAngle = M_PI - ((numSides - 2)*M_PI/numSides);
+   double turnSpeed;
+   if(clockwise) turnSpeed = -M_PI/4;
+   else turnSpeed = M_PI/4; 
+   commandBuffer = addSnapshot(commandBuffer);
+
+   int i;
+   for(i = 0; i < numSides; i++){
+      sprintf(command, "MOVE 1 %d", sideLen);
+      strcpy(copy, command);
+      sprintf(command, "%c%s", (int)strlen(copy), copy);       
+      commandBuffer = strcat(commandBuffer, command);
+
+      sprintf(command, "STOP");
+      strcpy(copy, command);
+      sprintf(command, "%c%s", (int)strlen(copy), copy);       
+      commandBuffer = strcat(commandBuffer, command);
+
+      commandBuffer = addSnapshot(commandBuffer);
+
+      sprintf(command, "TURN %.10f %.10f", turnSpeed, turnAngle); 
+      strcpy(copy, command);
+      sprintf(command, "%c%s", (int)strlen(copy), copy);       
+      commandBuffer = strcat(commandBuffer, command);
+
+      sprintf(command, "STOP"); 
+      strcpy(copy, command);
+      sprintf(command, "%c%s", (int)strlen(copy), copy);       
+      commandBuffer = strcat(commandBuffer, command);
+   }
+
+   // we need to make sure that the terminating null byte is sent over the network!
+   
+   plog("Command String length: %d\n", (int)strlen(commandBuffer));
+}
+
+char* addSnapshot(char* buffer){
+   //add commands in format [command len][command]
+   char *command = (char*)malloc(50);
+
+   sprintf(command, "%cGET IMAGE", (char)9);
+   buffer = strcat(buffer, command);
+   
+   sprintf(command, "%cGET DGPS", (char)8);
+   buffer = strcat(buffer, command);
+
+   sprintf(command, "%cGET GPS", (char)7);
+   buffer = strcat(buffer, command);
+
+   sprintf(command, "%cGET LASERS", (char)10);
+   buffer = strcat(buffer, command);
+
+   return buffer;
 }
 
 void getSnapshot() {
@@ -227,9 +293,10 @@ int main(int argc, char** argv) {
 	plog("Setting up clientMessenger");
 	
 	setupMessenger(serverHost, serverPort, robotID);
-	
-	tracePolygon(N, true);
-	tracePolygon(N-1, false);
+
+    sendTraceCommands(N, L, true);	
+//	tracePolygon(N, L, true);
+//	tracePolygon(N-1, L, false);
 
 	return 0;
 }
