@@ -29,7 +29,8 @@ typedef map<string, int>::iterator dict_iter;
 string compress(string str);
 
 /* Decompresses the given string previously compressed by compress() with
- * and returns the decompressed version
+ * and returns the decompressed version. Returns an empty string if the
+ * compressed string is improperly formatted.
  */
 string decompress(string str);
 

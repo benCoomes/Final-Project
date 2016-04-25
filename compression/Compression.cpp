@@ -17,6 +17,11 @@
  ******************************************************************************/
 #include "Compression.h"
 #include <iostream>
+#include <stdint.h>
+#include <vector>
+
+#include <cstdio>
+#include <fstream>
 
 /* Compresses the given string and returns the compressed version */
 string compress(string str)
@@ -25,7 +30,7 @@ string compress(string str)
     string comp = "";
 
     /* Add substrings of length 4 to the dictionary */
-    for(int i = 0; i < (str.size() - 3); i += 4)
+    for(int i = 0; i < ((int)(str.size()) - 3); i += 4)
         dict[str.substr(i, 4)]++;
 
     /* Remove dictionary elements with less than six entries */   
@@ -48,15 +53,21 @@ string compress(string str)
     /* Add the dictionary to the beginning of the compressed string */
     for(dict_iter iter = dict.begin(); iter != dict.end(); iter++)
         comp = comp + (char)0x04 + iter->first;
-    comp = comp + (char)0xFF;
+    comp = comp + (char)0x00;
 
     /* Replace keys in the string and add it to the compressed version */
-    for(int i = 0; i < str.size(); i++)
+    for(uint32_t i = 0; i < str.size(); i++)
     {
+        /* Check first if this substring is in the dictionary, then check if it
+         * is the escape character, then default to just copying the current
+         * character
+         */
         if((i < (str.size() - 3)) && (dict.find(str.substr(i, 4)) != dict.end()))
         {
-            char count = 0x01, j = i + 4;
-            while((count < 0xFE) && (j < (str.size() - 3)) &&
+            /* Count the occurrences of this key string */
+            unsigned char count = 0x01;
+            uint32_t j = i + 4;
+            while((count < (unsigned char)(0xFD)) && (j < (str.size() - 3)) &&
                   (str.substr(i, 4).compare(str.substr(j, 4)) == 0))
             {
                 count++;
@@ -65,38 +76,109 @@ string compress(string str)
 
             comp = comp + (char)(0xFE);
             comp = comp + (char)(distance(dict.begin(), dict.find(str.substr(i, 4))));
-            comp = comp + count;
+            comp = comp + (char)(count);
             i = j - 1;
         }
-        else if(str[i] == 0xFE)
-            comp = comp + (char)(0xFE) + (char)(0xFE);
+        else if((unsigned char)(str[i]) == (unsigned char)(0xFE))
+            comp = (comp + (char)(0xFE)) + (char)(0xFE);
         else
             comp = comp + str[i];
     }
 
-    /* Print dictionary elements - only for testing */
-    for(dict_iter iter = dict.begin(); iter != dict.end(); iter++)
-        cout << "String: " << iter->first << "\tValue: " <<
-                iter->second << endl;
-    
     return comp;
 }
 
 /* Decompresses the given string previously compressed by compress() with
- * and returns the decompressed version
+ * and returns the decompressed version. Returns an empty string if the
+ * compressed string is improperly formatted.
  */
 string decompress(string str)
 {
-    return str;
+    vector<string> dict;
+    string decomp = "";
+    uint32_t pos = 0;
+
+    /* Rebuild the dictionary by retrieving elements from the compressed
+     * string and adding them to the vector.
+     */
+    while((pos < str.size()) && (str[pos] != (char)(0x00)))
+    {
+        /* Make sure there is enough left of the string to take this entry */
+        if((pos + (uint32_t)(str[pos])) >= str.size())
+            return "";
+        
+        dict.push_back(str.substr(pos + 1, (uint32_t)(str[pos])));
+        pos += (uint32_t)(str[pos]) + 1;
+    }
+    
+    if(pos == str.size())
+        return "";
+
+    /* Go to next position after dictionary and start decompressing the string */
+    pos++;
+    while(pos < str.size())
+    {
+        if((unsigned char)(str[pos]) == (unsigned char)(0xFE))
+        {
+            /* Check whether the current substring is a compressed dictionary
+             * entry, just an escape character, or invalid
+             */
+            if((pos + 2 < str.size()) && ((unsigned char)(str[pos + 1]) <
+               (unsigned char)(0xFE)))
+            {
+                if((uint32_t)(str[pos + 1]) >= dict.size())
+                    return "";
+                
+                for(unsigned char i = 0; i < (unsigned char)(str[pos + 2]); i++)
+                    decomp = decomp + dict[(uint32_t)(str[pos + 1])];
+
+                pos += 3;
+            }
+            else if((pos + 1 < str.size()) && (unsigned char)(str[pos + 1]) ==
+                    (unsigned char)(0xFE))
+            {
+                decomp = decomp + (char)(0xFE);
+                pos += 2;
+            }
+            else
+                return "";
+        }
+        else
+        {
+            /* If the substring is just a normal character, copy it */
+            decomp = decomp + str[pos];
+            pos++;
+        }
+    }
+
+    return decomp;
 }
 
-/* main function - only for testing */
-int main(int argc, char *argv[])
-{
-    string comp = "Hellooo 123412341234123412341234123412341234 <> ABCDABCDABCDABCDABCDABCDABCD********1234,";
-    comp = comp + (char)(0xFE);
-    comp = comp + "world!";
-    cout << compress(comp) << endl;
-}
-
-
+///* main function - only for testing */
+//int main(int argc, char *argv[])
+//{
+//    fstream filein;
+//    fstream fileout;
+//    string input = "";
+//    string line = "";
+//
+//    filein.open("../../Compression_Examples/snapshotHUGE.jpg.output", ios::in);
+//    fileout.open("../../Compression_Examples/testHUGE.jpg", ios::out);
+//
+//    if(filein.is_open())
+//    {
+//        while(getline(filein, line))
+//            input = input + line + '\n';
+//        filein.close();
+//    }
+//
+//    string output = decompress(input);
+//
+//    if(fileout.is_open())
+//    {
+//        fileout << output;
+//        fileout.close();
+//    }
+//
+//    return 0;
+//}
