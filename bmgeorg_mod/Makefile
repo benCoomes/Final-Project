@@ -9,7 +9,7 @@ robotClient: client.c clientMessenger.h clientMessenger.c $(DEPS)
 	${CC} -o $@ client.c clientMessenger.c utility.c ${CFLAGS}
 
 robotServer: server.c serverMessenger.h serverMessenger.c $(DEPS)
-	${CC} -o $@ server.c serverMessenger.c utility.c ${CFLAGS}
+	${CC} -o $@ server.c serverMessenger.c utility.c ${CFLAGS} -pthread
 
 dummyServer: dummyServer.c serverMessenger.h serverMessenger.c $(DEPS)
 	${CC} -o $@ dummyServer.c serverMessenger.c utility.c ${CFLAGS}

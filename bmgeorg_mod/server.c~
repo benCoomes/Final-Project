@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include "serverMessenger.h"
 #include "utility.h"
 #include "setupClientSocket.inc"
@@ -14,11 +16,50 @@
 #include <unistd.h>     /* for close() */
 #include <time.h>       /* for time() */
 #include <signal.h>
+#include <pthread.h>
 
 #define MAXLINE 1000
+#define TRUE 1
+#define FALSE 0
 
 //Below added - Ben
 #define DEBUG
+
+
+typedef struct queuePtr {
+	char* robotComm;
+	int port; //port to send message to 
+	int commandCode; // 0 - 6 mapped to different client commands
+	double waitTime; //NULL if not used
+
+
+	char* msgbody;
+	char* msglen;
+	char* msgtype;
+} queueElem_t;
+
+/** List node  **/
+typedef struct queueNode {
+	queueElem_t *queuePtr;               /* Pointer to queue record         */
+	struct queueNode *next;        /* Pointer to next node          */
+	struct queueNode *prev;        /* Pointer to next node          */
+} queueNode_t;
+
+/** Car list **/
+typedef struct queueList {
+	queueNode_t *head;
+	queueNode_t *tail;
+} queue_t;
+
+queue_t *toRobot;
+queue_t *toClient;
+queue_t *parseToClient;
+
+void enqueue(queue_t * queue, queueElem_t *elem);
+queueElem_t * dequeue(queue_t * queue);
+int isEmpty(queue_t * queue);
+void *sendRecvRobot();
+void *sendToClient()
 
 //Method Signatures
 char* getRobotID(char* msg);
@@ -27,6 +68,33 @@ char* getRequestStr(char* msg);
 char* generateHTTPRequest(char* robotAddress, char* robotID, char* requestStr, char* imageID);
 char* getRobotPortForRequestStr(char* requestStr);
 void flushBuffersAndExit();
+
+/*Experimental*/
+
+typedef struct {
+	char* robotComm;
+	int port; //port to send message to 
+	int commandCode; // 0 - 6 mapped to different client commands
+	double waitTime; //NULL if not used
+} command;
+
+typedef struct {
+	char* msgbody;
+	char* msglen;
+	char* msgtype;
+} clientMsg;
+/*Experimental*/
+
+/*
+3 queues will be used to generate tasks
+
+
+*/
+
+
+
+
+
 
 //Main Method
 int main(int argc, char *argv[])
@@ -68,6 +136,17 @@ int main(int argc, char *argv[])
 	}
 	
 	plog("binded to client socket");
+
+
+
+        toRobot = malloc(sizeof(queue_t));
+        toClient = malloc(sizeof(queue_t));
+
+	pthread_t t1, t2;
+
+	pthread_create(&t1, NULL, sendRecvRobot, NULL);
+	pthread_create(&t2, NULL, sendToClient, NULL);
+
 
 	//Loop for each client request
 	for(;;) {
@@ -260,5 +339,80 @@ char* getRobotPortForRequestStr(char* requestStr) {
 void flushBuffersAndExit() {
 	fflush(stdout);
 	exit(0);
+}
+
+void *sendRecvRobot() {
+	while(1) {
+		if (isEmpty(toRobot) == FALSE) {
+			queueElem_t *elem = dequeue(toRobot);
+			sleep(1);
+			free(elem->msgbody);
+			elem->msgbody = malloc(sizeof(char) * 8);
+			strcpy(elem->msgbody, "Recvd");
+
+			enqueue(toClient, elem);
+		} else {
+			pthread_yield();
+		}
+	}
+return NULL;
+}
+
+void *sendToClient() {
+	while(1) {
+		if (isEmpty(toClient) == FALSE) {
+			queueElem_t *elem = dequeue(toClient);
+			printf("Code is %d, Received = %s\n", elem->commandCode, elem->msgbody);
+		} else {
+			pthread_yield();
+		}
+
+	}
+return NULL;
+}
+
+void enqueue(queue_t * queue, queueElem_t *elem)
+{
+	queueNode_t *Node = malloc(sizeof(queueNode_t));
+	Node->queuePtr = elem;
+	if( queue->tail == NULL ) {
+		queue->head = Node;
+		queue->tail = Node;
+		Node->next = NULL;
+		Node->prev = NULL;
+	} else {
+		Node->prev = queue->tail;
+		Node->next = NULL;
+		queue->tail->next = Node;
+		queue->tail = Node;
+	}
+}
+
+
+queueElem_t * dequeue(queue_t * queue)
+{
+	if(queue->head == NULL) {
+		return NULL;
+	} else if (queue->head->next == NULL) {
+		queueNode_t *tempNode = queue->head;
+		queue->head = NULL;
+		queue->tail = NULL;
+		return tempNode->queuePtr;
+	} else {
+		queueNode_t *tempNode = queue->head;
+		queue->head->next->prev = NULL;
+		queue->head = queue->head->next;
+		return tempNode->queuePtr;
+	}
+}
+
+int isEmpty(queue_t * queue)
+{
+	if (queue->head == NULL) {
+		return TRUE;
+	} else {
+		return FALSE;
+	}
+
 }
 
