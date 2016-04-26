@@ -14,7 +14,8 @@
 #include <signal.h>		//for signal
 #include <assert.h>		//for assert()
 
-const int RESPONSE_MESSAGE_SIZE = 1000;
+const int RESPONSE_MESSAGE_SIZE = 1400;
+const int COMMAND_MESSAGE_SIZE = 1400;
 
 //UDP socket
 int sock = -1;
@@ -54,9 +55,36 @@ void timedOut(int ignored) {
 */
 void* sendRequest(char* requestString, int* responseLength, double timeout) {
 	static uint32_t ID = 0;
+    int requestLen, metadataLen, numPackets, segmentSize;
+    void **request;
+    void *currReq;
+    char **requestStringSegment;
+    // 4 bytes for ID + robotID length + 1 byte for null char + 
+    // 4 bytes for messagecount + 4 bytes for message index + 1 byte for null char
+    metadataLen = 4+strlen(robotID)+1+4+4+1;
+    
+    // number of packets needed
+    numPackets = (strlen(requestString) / (COMMAND_MESSAGE_SIZE - metadataLen)) + 1;
 	
+    request = malloc(numPackets * sizeof(void*));
+    
+
+    
+    int i;
+    for(i = 0; i < numPackets; i++){
+        if(strlen(requestString) > (COMMAND_MESSAGE_SIZE - metadataLen)) 
+            segmentSize = COMMAND_MESSAGE_SIZE - metadataLen;
+        else segmentSize = strlen(requestString);
+
+        // right here
+    }
+
+    for(i = 0; i < numPackets; i++){
+        currReq = request[i];
+        requestLen = strlen(requestStringSegment[i]);
+    }
 	//4 bytes for ID + robotID length + 1 byte for null char + requestString length + 1 byte for null char
-	int requestLen = 4+strlen(robotID)+1+strlen(requestString)+1;
+	int requestLen = 
 	void* request = malloc(requestLen);
 	
 	//insert ID
@@ -64,7 +92,7 @@ void* sendRequest(char* requestString, int* responseLength, double timeout) {
 	
 	//insert robotID string
 	memcpy(((char*)request)+4, robotID, strlen(robotID)+1);
-	
+
 	//insert request string
 	memcpy(((char*)request)+4+strlen(robotID)+1, requestString, strlen(requestString)+1);
 	
