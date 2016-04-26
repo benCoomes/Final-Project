@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall
+CFLAGS = -Wall -g
 PROGS =	robotClient robotServer dummyServer
 DEPS = utility.h utility.c Makefile setupClientSocket.inc
 

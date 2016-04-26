@@ -17,6 +17,6 @@ void setupMessenger(char* serverHost, char* serverPort, char* robotID);
 	Set responseLength to total length of response
 	Return pointer to response data
 */
-void* sendRequest(char* requestString, int* responseLength, double timeout);
+void sendRequest(char* requestString, int* responseLength, double timeout);
 
 #endif

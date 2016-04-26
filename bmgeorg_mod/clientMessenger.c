@@ -53,58 +53,81 @@ void timedOut(int ignored) {
 	Set responseLength to total length of response
 	Return pointer to response data
 */
-void* sendRequest(char* requestString, int* responseLength, double timeout) {
+void sendRequest(char* requestString, int* responseLength, double timeout) {
 	static uint32_t ID = 0;
-    int requestLen, metadataLen, numPackets, segmentSize;
-    void **request;
-    void *currReq;
-    char **requestStringSegment;
-    // 4 bytes for ID + robotID length + 1 byte for null char + 
-    // 4 bytes for messagecount + 4 bytes for message index + 1 byte for null char
-    metadataLen = 4+strlen(robotID)+1+4+4+1;
+    int requestLen, 
+    	metadataLen, 
+    	numPackets, 
+    	segmentLen;
+    void *request;
+    char *segment;
+
+    // 12 bytes for ID, message count, and message index + robotID length 
+    // + 1 byte for null char terminator for robotID
+    metadataLen = 12+strlen(robotID)+1;
     
     // number of packets needed
-    numPackets = (strlen(requestString) / (COMMAND_MESSAGE_SIZE - metadataLen)) + 1;
-	
-    request = malloc(numPackets * sizeof(void*));
-    
+    numPackets = ((strlen(requestString) + 1) / (COMMAND_MESSAGE_SIZE - metadataLen)) + 1;
 
-    
+	// send messages    
     int i;
     for(i = 0; i < numPackets; i++){
-        if(strlen(requestString) > (COMMAND_MESSAGE_SIZE - metadataLen)) 
-            segmentSize = COMMAND_MESSAGE_SIZE - metadataLen;
-        else segmentSize = strlen(requestString);
+        if(strlen(requestString) + 1 > (COMMAND_MESSAGE_SIZE - metadataLen)) 
+            segmentLen = COMMAND_MESSAGE_SIZE - metadataLen;
+        else segmentLen = strlen(requestString) + 1;
 
-        // right here
+        requestLen = segmentLen + metadataLen;
+        request = malloc(requestLen);
+
+        //insert ID
+        *((uint32_t*)request) = htonl(ID);
+
+        //insert number of messages
+		*(((uint32_t*)request) + 1) = htonl(numPackets);
+
+		//insert message index 
+		*(((uint32_t*)request) + 2) = htonl(i);
+
+		//insert robotID string
+		memcpy(((char*)request)+12, robotID, strlen(robotID)+1);
+
+		//insert command message segement
+		segment = malloc(segmentLen);
+		memcpy(segment, requestString, segmentLen);
+		memcpy(((char*)request)+12+strlen(robotID)+1, segment, segmentLen);
+
+/*		int byte;
+		for(byte = 0; byte < requestLen; byte++){
+			fprintf(stdout, "  %02x", *(((char*)request) + byte));
+		}
+		fprintf(stdout, "\n\n");
+		for(byte = 0; byte < requestLen; byte++){
+			fprintf(stdout, "%c", *(((char*)request) + byte));
+		}
+		fflush(stdout);
+		plog("\nRequest length: %d\n", requestLen);
+*/
+		//send request
+		int numBytesSent = send(sock, request, requestLen, 0);
+		if(numBytesSent < 0)
+			quit("could not send request - send() failed");
+		else if(numBytesSent != requestLen)
+			quit("send() didn't send the whole request");
+	
+		requestString += segmentLen;
+		free(request);
+		free(segment);
+
     }
+}
 
-    for(i = 0; i < numPackets; i++){
-        currReq = request[i];
-        requestLen = strlen(requestStringSegment[i]);
-    }
-	//4 bytes for ID + robotID length + 1 byte for null char + requestString length + 1 byte for null char
-	int requestLen = 
-	void* request = malloc(requestLen);
 	
-	//insert ID
-	*((uint32_t*)request) = htonl(ID);
-	
-	//insert robotID string
-	memcpy(((char*)request)+4, robotID, strlen(robotID)+1);
 
-	//insert request string
-	memcpy(((char*)request)+4+strlen(robotID)+1, requestString, strlen(requestString)+1);
 	
-	//send request
-	int numBytesSent = send(sock, request, requestLen, 0);
-	if(numBytesSent < 0)
-		quit("could not send request - send() failed");
-	else if(numBytesSent != requestLen)
-		quit("send() didn't send the whole request");
-	
-	free(request);
 
+//Below is code that sends the recieves responses, used to be in sendRequest()
+
+/*
 	//start timeout timer
 	setTimer(timeout);
 	
@@ -176,6 +199,8 @@ void* sendRequest(char* requestString, int* responseLength, double timeout) {
 	
 	return fullResponse;
 }
+
+*/
 
 void setTimer(double seconds) {
 	struct itimerval it_val;

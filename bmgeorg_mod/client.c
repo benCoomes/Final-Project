@@ -145,6 +145,8 @@ void tracePolygon(int numSides, int sideLen,  bool clockwise) {
 }
 
 void sendTraceCommands(int numSides, int sideLen, bool clockwise){
+   int dummy;
+
    // commandBuffer has the following format: [command 0 length][command 0][command 1 length][command 1]...[0]
    char *commandBuffer = (char*)malloc(numSides * 120 + 40);
    char *command = (char*)malloc(50);
@@ -183,8 +185,12 @@ void sendTraceCommands(int numSides, int sideLen, bool clockwise){
    }
 
    // we need to make sure that the terminating null byte is sent over the network!
-   
+   // strcat takes care of appending the null byte to the send of command 
+
    plog("Command String length: %d\n", (int)strlen(commandBuffer));
+   plog("Command String: \n%s\n", commandBuffer);
+
+   sendRequest(commandBuffer, &dummy, 10.0);
 }
 
 char* addSnapshot(char* buffer){
@@ -207,6 +213,7 @@ char* addSnapshot(char* buffer){
 }
 
 void getSnapshot() {
+   /*
    int length;
    char *data;
 
@@ -256,6 +263,7 @@ void getSnapshot() {
 
    free(data);
    fclose(positionFile);
+   */
 }
 
 double getTime() {
@@ -294,7 +302,7 @@ int main(int argc, char** argv) {
 	
 	setupMessenger(serverHost, serverPort, robotID);
 
-    sendTraceCommands(N, L, true);	
+   sendTraceCommands(N, L, true);	
 //	tracePolygon(N, L, true);
 //	tracePolygon(N-1, L, false);
 
