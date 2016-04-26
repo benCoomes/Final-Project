@@ -12,12 +12,15 @@
  *
  * Routines:
  *  string compress(string str)
+ *  char*  charCompress(const char *str, uint32_t len, uint32_t *newLen)
  *  string decompress(string str)
+ *  char*  charDecompress(const char *str, uint32_t len, uint32_t *newLen)
  *
  ******************************************************************************/
 #include "Compression.h"
+#include <cstring>
 #include <iostream>
-#include <stdint.h>
+#include <stdlib.h>
 #include <vector>
 
 /* Compresses the given string and returns the compressed version */
@@ -85,6 +88,20 @@ string compress(string str)
     return comp;
 }
 
+/* Compresses the given character string str of length len to its compressed
+ * version, returning a pointer to the compressed string and storing the length
+ * of the compressed string in newLen. Returned memory must be free'd.
+ */
+char* charCompress(const char *str, uint32_t len, uint32_t *newLen)
+{
+    string decomp(str, len);
+    string comp = compress(decomp);
+    char *ret = (char *)(malloc(comp.size() * sizeof(char)));
+    memcpy(ret, comp.c_str(), comp.size()); 
+    *newLen = comp.size();
+    return ret;
+}
+
 /* Decompresses the given string previously compressed by compress() with
  * and returns the decompressed version. Returns an empty string if the
  * compressed string is improperly formatted.
@@ -150,4 +167,20 @@ string decompress(string str)
     }
 
     return decomp;
+}
+
+/* Decompresses the given character string str of length len which was
+ * previously compressed with charCompress(), returning a pointer to
+ * the decompressed character string and storing the length of the
+ * decompressed string in newLen. Returns an empty string if the compressed
+ * string is improperly formatted. The returned memory will need to be free'd. 
+ */
+char* charDecompress(const char *str, uint32_t len, uint32_t *newLen)
+{
+    string comp(str, len);
+    string decomp = decompress(comp);
+    char *ret = (char *)(malloc(decomp.size() * sizeof(char)));
+    memcpy(ret, decomp.c_str(), decomp.size()); 
+    *newLen = decomp.size();
+    return ret;
 }
