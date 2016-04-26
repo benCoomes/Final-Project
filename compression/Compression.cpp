@@ -49,8 +49,8 @@ string compress(string str)
 
     /* Add the dictionary to the beginning of the compressed string */
     for(dict_iter iter = dict.begin(); iter != dict.end(); iter++)
-        comp = comp + (char)0x04 + iter->first;
-    comp = comp + (char)0x00;
+        comp = comp + (char)(0x04) + iter->first;
+    comp = comp + (char)(0x00);
 
     /* Replace keys in the string and add it to the compressed version */
     for(uint32_t i = 0; i < str.size(); i++)
