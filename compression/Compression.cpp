@@ -20,9 +20,6 @@
 #include <stdint.h>
 #include <vector>
 
-#include <cstdio>
-#include <fstream>
-
 /* Compresses the given string and returns the compressed version */
 string compress(string str)
 {
@@ -101,14 +98,15 @@ string decompress(string str)
     /* Rebuild the dictionary by retrieving elements from the compressed
      * string and adding them to the vector.
      */
-    while((pos < str.size()) && (str[pos] != (char)(0x00)))
+    while((pos < str.size()) &&
+          ((unsigned char)(str[pos]) != (unsigned char)(0x00)))
     {
         /* Make sure there is enough left of the string to take this entry */
-        if((pos + (uint32_t)(str[pos])) >= str.size())
+        if((pos + (unsigned char)(str[pos])) >= str.size())
             return "";
         
-        dict.push_back(str.substr(pos + 1, (uint32_t)(str[pos])));
-        pos += (uint32_t)(str[pos]) + 1;
+        dict.push_back(str.substr(pos + 1, (unsigned char)(str[pos])));
+        pos += (unsigned char)(str[pos]) + 1;
     }
     
     if(pos == str.size())
@@ -126,11 +124,11 @@ string decompress(string str)
             if((pos + 2 < str.size()) && ((unsigned char)(str[pos + 1]) <
                (unsigned char)(0xFE)))
             {
-                if((uint32_t)(str[pos + 1]) >= dict.size())
+                if((unsigned char)(str[pos + 1]) >= dict.size())
                     return "";
                 
                 for(unsigned char i = 0; i < (unsigned char)(str[pos + 2]); i++)
-                    decomp = decomp + dict[(uint32_t)(str[pos + 1])];
+                    decomp = decomp + dict[(unsigned char)(str[pos + 1])];
 
                 pos += 3;
             }
@@ -153,32 +151,3 @@ string decompress(string str)
 
     return decomp;
 }
-
-///* main function - only for testing */
-//int main(int argc, char *argv[])
-//{
-//    fstream filein;
-//    fstream fileout;
-//    string input = "";
-//    string line = "";
-//
-//    filein.open("../../Compression_Examples/snapshotHUGE.jpg.output", ios::in);
-//    fileout.open("../../Compression_Examples/testHUGE.jpg", ios::out);
-//
-//    if(filein.is_open())
-//    {
-//        while(getline(filein, line))
-//            input = input + line + '\n';
-//        filein.close();
-//    }
-//
-//    string output = decompress(input);
-//
-//    if(fileout.is_open())
-//    {
-//        fileout << output;
-//        fileout.close();
-//    }
-//
-//    return 0;
-//}
