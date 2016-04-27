@@ -224,8 +224,18 @@ int main(int argc, char *argv[])
 		#endif
 		
 		//Parse Response from Robot
-		char* httpBody = strstr(httpResponse, "\r\n\r\n")+4;
-		int httpBodyLength = (httpResponse+pos)-httpBody;
+		char* httpBody = strstr(httpResponse, "\r\n\r\n");
+        int httpBodyLength
+        if(httpBody == NULL)
+        {
+            httpBody = httpResponse;
+            httpBodyLength = 0;
+        }
+        else
+        {
+            httpBody += 4;
+            httpBodyLength = (httpResponse + pos) - httpBody;
+        }
 		
 		plog("http body of %d bytes", httpBodyLength);
 		plog("http body: ");

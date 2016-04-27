@@ -1,5 +1,7 @@
 #include "Compression.h"
 #include <fstream>
+#include <iostream>
+#include <stdlib.h>
 
 /* main function - only for testing */
 int main(int argc, char *argv[])
@@ -9,8 +11,8 @@ int main(int argc, char *argv[])
     string input = "";
     string line = "";
 
-    filein.open("../../Compression_Examples/snapshotHUGE.jpg.output", ios::in);
-    fileout.open("../../Compression_Examples/testHUGE.jpg", ios::out);
+    filein.open("../../Compression_Examples/snapshot.jpg", ios::in);
+    fileout.open("../../Compression_Examples/test.jpg.output", ios::out);
 
     if(filein.is_open())
     {
@@ -18,8 +20,12 @@ int main(int argc, char *argv[])
             input = input + line + '\n';
         filein.close();
     }
-   
-    string output = decompress(input);
+  
+    uint32_t len = input.size();
+    uint32_t newLen = input.size();
+    char* comp = charCompress(input.c_str(), len, &newLen);
+    char* decomp = charDecompress(comp, newLen, &len);
+    string output(comp, newLen);
 
     if(fileout.is_open())
     {
@@ -27,5 +33,7 @@ int main(int argc, char *argv[])
         fileout.close();
     }
 
+    free(comp);
+    free(decomp);
     return 0;
 }
