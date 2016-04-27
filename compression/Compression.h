@@ -15,12 +15,16 @@
  *  char*  charCompress(const char *str, uint32_t len, uint32_t *newLen)
  *  string decompress(string str)
  *  char*  charDecompress(const char *str, uint32_t len, uint32_t *newLen)
+ *  char*  charCompress_C(const char *str, uint32_t len, uint32_t *newLen)
+ *  char*  charDecompress_C(const char *str, uint32_t len, uint32_t *newLen)
  *
  ******************************************************************************/
 #ifndef COMPRESSION_H
 #define COMPRESSION_H
 
 #include <stdint.h>
+
+#ifdef __cplusplus
 #include <string>
 #include <map>
 
@@ -50,5 +54,17 @@ string decompress(string str);
  * string is improperly formatted. The returned memory will need to be free'd.
  */
 char* charDecompress(const char *str, uint32_t len, uint32_t *newLen);
+#endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* C wrapper functions for charCompress() and charDecompress() */
+char* charCompress_C(const char *str, uint32_t len, uint32_t *newLen);
+char* charDecompress_C(const char *str, uint32_t len, uint32_t *newLen);
+
+#ifdef __cplusplus
+}
+#endif
 #endif

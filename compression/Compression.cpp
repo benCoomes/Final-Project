@@ -184,3 +184,15 @@ char* charDecompress(const char *str, uint32_t len, uint32_t *newLen)
     *newLen = decomp.size();
     return ret;
 }
+
+/* C wrapper function for charCompress() */
+char* charCompress_C(const char *str, uint32_t len, uint32_t *newLen)
+{
+    return charCompress(str, len, newLen);
+}
+
+/* C wrapper function for charDecompress */
+char* charDecompress_C(const char *str, uint32_t len, uint32_t *newLen)
+{
+    return charDecompress(str, len, newLen);
+}
