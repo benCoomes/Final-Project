@@ -381,6 +381,11 @@ void *sendToClient() {
 return NULL;
 }
 
+
+
+//Queue Code.
+
+//Enqueue takes a queueElem_t and adds it to the tail end of the queue
 void enqueue(queue_t * queue, queueElem_t *elem)
 {
 	queueNode_t *Node = malloc(sizeof(queueNode_t));
@@ -398,6 +403,7 @@ void enqueue(queue_t * queue, queueElem_t *elem)
 	}
 }
 
+//Dequeue removes the head of the queue and returns the queueElem_t it held
 
 queueElem_t * dequeue(queue_t * queue)
 {

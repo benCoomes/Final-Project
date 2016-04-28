@@ -59,7 +59,7 @@ void enqueue(queue_t * queue, queueElem_t *elem);
 queueElem_t * dequeue(queue_t * queue);
 int isEmpty(queue_t * queue);
 void *sendRecvRobot();
-void *sendToClient()
+void *sendToClient();
 
 //Method Signatures
 char* getRobotID(char* msg);
