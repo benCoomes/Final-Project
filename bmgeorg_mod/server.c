@@ -20,7 +20,7 @@
 #include <math.h>
 #include <sys/time.h>
 
-#define MAXLINE 1000
+#define MAXLINE 1400
 #define TRUE 1
 #define FALSE 0
 #define READY 1
