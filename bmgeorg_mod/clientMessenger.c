@@ -242,7 +242,7 @@ void storeData(commandResponse response, char *command)
     /* Extract the full message from the commandResponse struct */
     int PAYLOAD_SIZE = RESPONSE_MESSAGE_SIZE - 16;
     uint32_t messageLen = ((response.numMessages - 1) * PAYLOAD_SIZE) +
-                          response.lastMessageLength;
+                          (response.lastMessageLength - 16);
     void *fullResponse = malloc(messageLen);
     int i;
 
