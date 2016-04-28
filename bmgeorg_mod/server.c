@@ -75,10 +75,10 @@ void flushBuffersAndExit();
 
 */
 
-
-
-
-
+unsigned short localUDPPort;
+char* robotAddress;
+char* robotID;
+char* imageID;
 
 //Main Method
 int main(int argc, char *argv[])
@@ -87,10 +87,10 @@ int main(int argc, char *argv[])
 		quit("Usage: %s <server_port> <robot_IP/robot_hostname> <robot_ID> <image_id>", argv[0]);
 	}
 	//read args
-	unsigned short localUDPPort = atoi(argv[1]);
-	char* robotAddress = argv[2];
-	char* robotID = argv[3];
-	char* imageID = argv[4];
+	localUDPPort = atoi(argv[1]);
+	robotAddress = argv[2];
+	robotID = argv[3];
+	imageID = argv[4];
 	
 	plog("Read arguments");
 	plog("Robot address: %s", robotAddress);
@@ -152,6 +152,12 @@ int main(int argc, char *argv[])
 
 		plog("Received request of %d bytes", recvMsgSize);
 
+		//Interpret client request
+		char* requestRobotID = getRobotID(clientBuffer);
+		if(strcmp(robotID, requestRobotID) != 0) {
+			fprintf(stderr, "invalid request - robot ID's don't match\n");
+			continue;
+		}
 
 		for(int i = 0; i < recvMsgSize;i++) {
 			queueElem_t * element = malloc(sizeof(queueElem_t));
@@ -164,12 +170,7 @@ int main(int argc, char *argv[])
 			sleep(1);
 		}
 
-		//Interpret client request
-		char* requestRobotID = getRobotID(clientBuffer);
-		if(strcmp(robotID, requestRobotID) != 0) {
-			fprintf(stderr, "invalid request - robot ID's don't match\n");
-			continue;
-		}
+
 		
 		plog("Requested robot ID: %s", requestRobotID);
 
