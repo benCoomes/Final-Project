@@ -160,7 +160,14 @@ int main(int argc, char *argv[])
 				(struct sockaddr *) &clientAddress, &clientAddressLen)) < 0) {
 			quit("could not receive client request - recvfrom() failed");
 		}
-
+		/*Checking Header*/
+		printf("printing header\n");
+		int i = 0;
+		while(i < 16) {
+			printf("%u ",(uint8_t)*(clientBuffer+i));
+			i++;
+		}
+		/*Header Check ^^*/
 		plog("Received request of %d bytes", recvMsgSize);
 
 		//Will be used to tell when at end of string
@@ -175,12 +182,15 @@ int main(int argc, char *argv[])
 
 		char* toRobotPtr = clientBuffer + 12; //Move ptr to robot ID
 		uint32_t ID = getRequestID(clientBuffer);
-		while(toRobotPtr != 0){
+		while(*toRobotPtr != 0){
 			toRobotPtr++;
 			size--;
 		}
 		toRobotPtr++;
 		size--;
+		puts("RobotPtr = ");
+		printf("Robotptr g= %s\n",toRobotPtr);
+		fflush(stdout);
 		
 		while(size > 0) {
 			int commandStringSize;
@@ -216,7 +226,8 @@ int main(int argc, char *argv[])
 }
 
 char* getRobotID(char* msg) {
-	return msg+4;
+	printf("Robot ID = %s\n",msg+12);
+	return msg+12;
 }
 
 uint32_t getRequestID(char* msg) {
@@ -426,7 +437,7 @@ void *sendRecvRobot() {
 				pos += n;
 				httpResponse = realloc(httpResponse, pos+MAXLINE);
 			}
-
+			/*
 			plog("Received http response of %d bytes", pos);
 			plog("http response: ");
 			#ifdef DEBUG
@@ -434,7 +445,7 @@ void *sendRecvRobot() {
 			for(j = 0; j < pos; j++)
 				fprintf(stderr, "%c", httpResponse[j]);
 			#endif
-
+			*/
 			//Parse Response from Robot
 			char* httpBody = strstr(httpResponse, "\r\n\r\n");
 	        int httpBodyLength;
@@ -448,14 +459,14 @@ void *sendRecvRobot() {
 	            httpBody += 4;
 	            httpBodyLength = (httpResponse + pos) - httpBody;
 	        }
-
+			/*
 			plog("http body of %d bytes", httpBodyLength);
 			plog("http body: ");
 			#ifdef DEBUG
 			for(j = 0; j < httpBodyLength; j++)
 				fprintf(stderr, "%c", httpBody[j]);
 			#endif
-
+			*/			
 
 			elem->msgbody = httpBody;
 			elem->msglen = httpBodyLength;
