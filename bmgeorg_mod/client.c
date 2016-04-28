@@ -10,7 +10,7 @@
 #include <sys/time.h>
 #include <math.h>
 
-void sendTraceCommands(int numSides, int sideLen, bool clockwise);
+void tracePolygon(int numSides, int sideLen, bool clockwise);
 void recieveTraceCommands(int numSides);
 char *addSnapshot(char* buffer);
 double getTime();
@@ -22,7 +22,7 @@ int fileCount = 0;
 const double COMMAND_TIMEOUT = 0.95;
 const double DATA_TIMEOUT = 5.0;
 
-void sendTraceCommands(int numSides, int sideLen, bool clockwise){
+void tracePolygon(int numSides, int sideLen, bool clockwise){
    int dummy;
 
    // commandBuffer has the following format: [command 0 length][command 0][command 1 length][command 1]...[0]
@@ -65,6 +65,7 @@ void sendTraceCommands(int numSides, int sideLen, bool clockwise){
    plog("Command String length: %d\n", (int)strlen(commandBuffer));
    plog("Command String: \n%s\n", commandBuffer);
 
+   // sends request and recieves data from request
    sendRequest(commandBuffer, &dummy, 10.0);
 }
 
@@ -124,8 +125,8 @@ int main(int argc, char** argv) {
 	
 	setupMessenger(serverHost, serverPort, robotID);
 
-    sendTraceCommands(N, L, true);
-    sendTraceCommands(N-1, L, false);	
+    tracePolygon(N, L, true);
+    tracePolygon(N-1, L, false);	
 
     return 0;
 }

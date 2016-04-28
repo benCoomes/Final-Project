@@ -13,6 +13,7 @@
 #include <netdb.h>		//for addrinfo
 #include <signal.h>		//for signal
 #include <assert.h>		//for assert()
+#include <stdbool.h>
 
 const int RESPONSE_MESSAGE_SIZE = 1400;
 const int COMMAND_MESSAGE_SIZE = 1400;
@@ -21,12 +22,21 @@ const int COMMAND_MESSAGE_SIZE = 1400;
 int sock = -1;
 char* robotID;
 
+typedef struct commandNode{
+    struct commandNode *next;
+    int index;
+    char *command;
+    bool recieved;
+} commandNode;
+
 //private functions
 void setTimer(double seconds);
 void stopTimer();
 void timedOut(int ignored);
+commandNode *buildCommandList(char* requestString);
 
 void* recvMessage(int ID, int* messageLength);
+void recieveData(void);
 int extractMessageID(void* message);
 int extractNumMessages(void* message);
 int extractSequenceNum(void* message);
@@ -48,10 +58,7 @@ void timedOut(int ignored) {
 }
 
 /*
-	Send request, receive and reassemble response
-	Exit if you don't receive entire response after timeout seconds
-	Set responseLength to total length of response
-	Return pointer to response data
+	Send request
 */
 void sendRequest(char* requestString, int* responseLength, double timeout) {
 	static uint32_t ID = 0;
@@ -119,11 +126,13 @@ void sendRequest(char* requestString, int* responseLength, double timeout) {
 		free(segment);
 
     }
+
+    //recieveData();
 }
 
 //Below is code that sends the recieves responses, used to be in sendRequest()
-
 /*
+
 	//start timeout timer
 	setTimer(timeout);
 	
@@ -195,8 +204,43 @@ void sendRequest(char* requestString, int* responseLength, double timeout) {
 	
 	return fullResponse;
 }
-
 */
+
+commandNode *buildCommandList(char *responseString){
+    int commandLen;
+    int currIndex = 0;
+    char* command;
+    commandNode *head = malloc(sizeof(commandNode));
+    commandNode *current = head;
+    commandNode *next = NULL;
+    head->next = NULL;
+
+    while((commandLen = (char)(*responseString)) != 0){
+        //extract next command
+        command = malloc(50);
+        memcpy(command, responseString + 1, commandLen);
+        
+        //make new commandNode
+        next = malloc(sizeof(commandNode));
+
+        //fill fields of new commandNode
+        next->index = currIndex++;
+        next->command = command;
+        next->recieved = false;
+        next->next = NULL;
+
+        // add commandNode to list
+        current->next = next;
+        current = next;
+        next = NULL;
+
+        //move responseString forward
+        responseString += commandLen + 1;     
+    }
+
+    return head;
+}
+
 
 void setTimer(double seconds) {
 	struct itimerval it_val;
