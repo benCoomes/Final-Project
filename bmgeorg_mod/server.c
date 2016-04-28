@@ -79,6 +79,7 @@ unsigned short localUDPPort;
 char* robotAddress;
 char* robotID;
 char* imageID;
+pthread_mutex_t qMutex = PTHREAD_MUTEX_INITIALIZER;
 
 //Main Method
 int main(int argc, char *argv[])
@@ -191,8 +192,9 @@ int main(int argc, char *argv[])
 			toRobotPtr+=(commandStringSize + 1);
 			size-=(commandStringSize + 1);
 
+			pthread_mutex_lock(&qMutex);
 			enqueue(toRobot,element);
-
+			pthread_mutex_unlock(&qMutex);
 		}
 		while(readyForNextPacket != READY) {
 			sleep(1);
@@ -299,8 +301,9 @@ void flushBuffersAndExit() {
 void *sendRecvRobot() {
 	while(1) {
 		if (isEmpty(toRobot) == FALSE) {
-			//Add locks!
+			pthread_mutex_lock(&qMutex);
 			queueElem_t *elem = dequeue(toRobot);
+			pthread_mutex_unlock(&qMutex);
 			/*sleep(1);
 			free(elem->msgbody);
 			elem->msgbody = malloc(sizeof(char) * 8);
@@ -428,8 +431,9 @@ void *sendRecvRobot() {
 
 			plog("freed http response");
 
-			//Add locks!
+			pthread_mutex_lock(&qMutex);
 			enqueue(toClient, elem);
+			pthread_mutex_unlock(&qMutex);
 		} else {
 			pthread_yield();
 		}
@@ -440,7 +444,9 @@ return NULL;
 void *sendToClient() {
 	while(1) {
 		if (isEmpty(toClient) == FALSE) {
+			pthread_mutex_lock(&qMutex);
 			queueElem_t *elem = dequeue(toClient);
+			pthread_mutex_unlock(&qMutex);
 
 			//Send response back to the UDP client
 			uint32_t requestID = getRequestID(clientBuffer); //may need to be included with struct
