@@ -126,7 +126,7 @@ void sendRequest(char* requestString, int* responseLength, double timeout) {
 		memcpy(segment, requestString, segmentLen);
 		memcpy(((char*)request)+12+strlen(robotID)+1, segment, segmentLen);
 
-/*		//Testing
+		//Testing
 		int byte;
 		for(byte = 0; byte < requestLen; byte++){
 			fprintf(stdout, "  %02x", *(((char*)request) + byte));
@@ -134,7 +134,7 @@ void sendRequest(char* requestString, int* responseLength, double timeout) {
                 fprintf(stdout, "\n");
 		}
 		fprintf(stdout, "\n\n");
-		for(byte = 0; byte < requestLen; byte++){
+/*		for(byte = 0; byte < requestLen; byte++){
 			fprintf(stdout, "%c", *(((char*)request) + byte));
 		}
 		fflush(stdout);
@@ -173,12 +173,12 @@ void recvData(int ID, commandNode *commandList, double timeout) {
         uint32_t commandIndex = extractCommandIndex(message);
         
         /* Log tracking info */
-        plog("ID: %d", extractMessageID(message));
+/*      plog("ID: %d", extractMessageID(message));
 	    plog("Total: %d", numMessages);
 	    plog("Sequence: %d", seqNum);
-        plog("Command Index: %d", commandIndex);
-	    plog("Length: %d", messageLength);
-
+*/      plog("Command Index: %d", commandIndex);
+/*	    plog("Length: %d", messageLength);
+*/
         /* Check if this is a valid command index */
         if(commandIndex >= numCommands)
             quit("Unexpected command index received in recvData().");
@@ -247,7 +247,7 @@ void storeData(commandResponse response, char *command)
     int i;
 
     /* Print tracking data */
-    plog("Full response length: %d", messageLen);
+  //  plog("Full response length: %d", messageLen);
 
     /* Loop through the received messages to piece them together */
     for(i = 0; i < response.numMessages - 1; i++) {

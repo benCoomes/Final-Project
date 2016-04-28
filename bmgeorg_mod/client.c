@@ -25,10 +25,17 @@ const double DATA_TIMEOUT = 5.0;
 void tracePolygon(int numSides, int sideLen, bool clockwise){
    int dummy;
 
+   int commandBufferLen = numSides * 120 + 40;
+   int commandLen = 50;
+
    // commandBuffer has the following format: [command 0 length][command 0][command 1 length][command 1]...[0]
-   char *commandBuffer = (char*)malloc(numSides * 120 + 40);
-   char *command = (char*)malloc(50);
-   char *copy = (char*)malloc(50);
+   char *commandBuffer = (char*)malloc(commandBufferLen);
+   char *command = (char*)malloc(commandLen);
+   char *copy = (char*)malloc(commandLen);
+
+   memset(commandBuffer, 0x00, commandBufferLen);
+   memset(command, 0x00, commandLen);
+   memset(copy, 0x00, commandLen);
 
    // determine the turn angle and speed
    double turnAngle = M_PI - ((numSides - 2)*M_PI/numSides);
@@ -67,6 +74,10 @@ void tracePolygon(int numSides, int sideLen, bool clockwise){
 
    // sends request and recieves data from request
    sendRequest(commandBuffer, &dummy, 10.0);
+
+   free(commandBuffer);
+   free(command);
+   free(copy);
 }
 
 char* addSnapshot(char* buffer){
@@ -126,6 +137,7 @@ int main(int argc, char** argv) {
 	setupMessenger(serverHost, serverPort, robotID);
 
     tracePolygon(N, L, true);
+    sleep(5);
     tracePolygon(N-1, L, false);	
 
     return 0;
