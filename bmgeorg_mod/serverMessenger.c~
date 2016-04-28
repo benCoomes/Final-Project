@@ -10,7 +10,7 @@
 #include <unistd.h>     //for close()
 #include <netdb.h>		//for struct sockaddr*
 
-const int RESPONSE_MESSAGE_SIZE = 1400;
+const int RESPONSE_MESSAGE_SIZE = 1000;
 
 void setID(void* message, int ID);
 void setNumMessages(void* message, int numMessages);
