@@ -225,7 +225,7 @@ int main(int argc, char *argv[])
 		
 		//Parse Response from Robot
 		char* httpBody = strstr(httpResponse, "\r\n\r\n");
-        int httpBodyLength
+        int httpBodyLength;
         if(httpBody == NULL)
         {
             httpBody = httpResponse;
