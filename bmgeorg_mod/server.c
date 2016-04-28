@@ -38,7 +38,7 @@ typedef struct queueElem {
 	unsigned int clientAddressLen;
 	int clientSock;
 
-	int commandIndex; // 0 - 6 mapped cammands to client
+	int commandIndex; // indicates order that command was recieved in
 	char* msgbody; //Body of message to client
 	double msglen; //Length of message to client
 } queueElem_t;
@@ -194,6 +194,7 @@ int main(int argc, char *argv[])
 		fflush(stdout);
 		*/
 		/**/
+        int commandIndex = 0;
 		while(size > 1) {
 			int commandStringSize;
 
@@ -208,6 +209,7 @@ int main(int argc, char *argv[])
 			element->clientSock = clientSock;
 			element->clientAddress = &clientAddress;
 			element->clientAddressLen = clientAddressLen;
+            element->commandIndex = commandIndex++;            
 
 			element->robotCommand = malloc(commandStringSize + 1);
 			strncpy(element->robotCommand,toRobotPtr,commandStringSize);
@@ -498,7 +500,8 @@ void *sendToClient() {
 
 			//Send response back to the UDP client
 			uint32_t requestID = elem->ID; //may need to be included with struct
-			sendResponse(elem->clientSock, elem->clientAddress, elem->clientAddressLen, requestID, elem->msgbody, elem->msglen);
+            int commandIndex = elem->commandIndex;
+			sendResponse(elem->clientSock, elem->clientAddress, elem->clientAddressLen, requestID, commandIndex, elem->msgbody, elem->msglen);
 
 			plog("sent http body response to client");
 

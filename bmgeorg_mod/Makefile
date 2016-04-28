@@ -11,8 +11,5 @@ robotClient: client.c clientMessenger.h clientMessenger.c $(DEPS)
 robotServer: server.c serverMessenger.h serverMessenger.c $(DEPS)
 	${CC} -o $@ server.c serverMessenger.c utility.c ${CFLAGS} -pthread
 
-dummyServer: dummyServer.c serverMessenger.h serverMessenger.c $(DEPS)
-	${CC} -o $@ dummyServer.c serverMessenger.c utility.c ${CFLAGS}
-
 clean:
 	rm -f ${PROGS}

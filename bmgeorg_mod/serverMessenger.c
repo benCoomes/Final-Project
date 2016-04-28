@@ -15,9 +15,10 @@ const int RESPONSE_MESSAGE_SIZE = 1400;
 void setID(void* message, int ID);
 void setNumMessages(void* message, int numMessages);
 void setSequenceNum(void* message, int sequenceNum);
+void setCommandIndex(void* message, int commandIndex);
 
-void sendResponse(int sock, struct sockaddr_in* recipientAddr, int addressSize, int ID, void* response, int responseLength) {
-	int PAYLOAD_SIZE = RESPONSE_MESSAGE_SIZE - 12; //subtract size for headers
+void sendResponse(int sock, struct sockaddr_in* recipientAddr, int addressSize, int ID, int commandIndex, void* response, int responseLength) {
+	int PAYLOAD_SIZE = RESPONSE_MESSAGE_SIZE - 16; //subtract size for headers
 	int numMessages = responseLength/PAYLOAD_SIZE + (responseLength%PAYLOAD_SIZE == 0? 0 : 1);
 	if(responseLength == 0)
 		numMessages = 1;
@@ -29,7 +30,7 @@ void sendResponse(int sock, struct sockaddr_in* recipientAddr, int addressSize, 
 	for(i = 0; i < numMessages; i++) {
 		int size = RESPONSE_MESSAGE_SIZE;
 		if(i == numMessages-1 && (responseLength%PAYLOAD_SIZE != 0 || responseLength == 0))
-			size = 12+responseLength%PAYLOAD_SIZE;
+			size = 16+responseLength%PAYLOAD_SIZE;
 		messages[i] = malloc(size);
 	}
 	
@@ -38,18 +39,19 @@ void sendResponse(int sock, struct sockaddr_in* recipientAddr, int addressSize, 
 		setID(messages[i], ID);
 		setNumMessages(messages[i], numMessages);
 		setSequenceNum(messages[i], i);
+        setCommandIndex(messages[i], commandIndex);
 		int size = PAYLOAD_SIZE;
 		//only last message has a different size
 		if(i == numMessages-1 && (responseLength%PAYLOAD_SIZE != 0 || responseLength == 0))
 			size = responseLength%PAYLOAD_SIZE;
-		memcpy(((char*)messages[i])+12, ((char*)response)+i*PAYLOAD_SIZE, size);
+		memcpy(((char*)messages[i])+16, ((char*)response)+i*PAYLOAD_SIZE, size);
 	}
 	
 	//send all messages
 	for(i = 0; i < numMessages; i++) {
 		int size = RESPONSE_MESSAGE_SIZE;
 		if(i == numMessages-1 && (responseLength%PAYLOAD_SIZE != 0 || responseLength == 0))
-			size = 12+responseLength%PAYLOAD_SIZE;
+			size = 16+responseLength%PAYLOAD_SIZE;
 		int numSent = sendto(sock, messages[i], size, 0, (struct sockaddr*) recipientAddr, addressSize);
 		if(numSent < 0)
 			quit("sendto() failed in serverMessenger");
@@ -75,4 +77,8 @@ void setNumMessages(void* message, int numMessages) {
 
 void setSequenceNum(void* message, int sequenceNum) {
 	*(((uint32_t*) message)+2) = htonl(sequenceNum);
+}
+
+void setCommandIndex(void* message, int commandIndex){
+    *(((uint32_t*) message)+3) = htonl(commandIndex);
 }
