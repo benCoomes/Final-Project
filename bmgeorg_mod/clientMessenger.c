@@ -35,12 +35,15 @@ void setTimer(double seconds);
 void stopTimer();
 void timedOut(int ignored);
 commandNode *buildCommandList(char* requestString);
+void freeCommandList(commandNode *commandList);
+bool allDataReceived(commandNode *commandList);
 
-void* recvMessage(int ID, int* messageLength);
-void recvData(int ID, commandNode *commandList);
+void* recvMessage(int commandIndex, int* messageLength);
+void recvData(int ID, commandNode *commandList, double timeout);
 int extractMessageID(void* message);
 int extractNumMessages(void* message);
 int extractSequenceNum(void* message);
+int extractCommandIndex(void *message);
 
 void setupMessenger(char* serverHost, char* serverPort, char* _robotID) {
 	assert(serverHost != NULL);
@@ -128,82 +131,88 @@ void sendRequest(char* requestString, int* responseLength, double timeout) {
 		requestString += segmentLen;
 		free(request);
 		free(segment);
-
-        commandNode *commandList = buildCommandList(requestStringCopy);
-        recvData(ID, commandList);
-
     }
 
-    //receiveData();
+    commandNode *commandList = buildCommandList(requestStringCopy);
+  //  recvData(ID, commandList, timeout);
 }
 
-void recvData(int ID, commandNode *commandList){
-    // STUBDEB
+void recvData(int ID, commandNode *commandList, double timeout){
+    
+    while(!allDataReceived(commandList)){
+	    setTimer(timeout);
+
+	    //get first message so we can allocate space for all messages
+	    int messageLength;
+	    void* message = recvMessage(ID, &messageLength);
+	    int numMessages = extractNumMessages(message);
+	    int i = extractSequenceNum(message);
+        int commandIndex = extractCommandIndex(message);
+             
+	    void** messages = malloc(sizeof(void*)*numMessages);
+	    memset(messages, 0, sizeof(void*)*numMessages);
+
+	    messages[i] = message;
+
+	    //only the last message's length is important
+	    //the other lengths we assume to be equal to RESPONSE_MESSAGE_SIZE
+	    int lastMessageLength = numMessages == 1? messageLength : 0;
+        
+	    plog("ID: %d", extractMessageID(message));
+	    plog("Total: %d", extractNumMessages(message));
+	    plog("Sequence: %d", extractSequenceNum(message));
+	    plog("Length: %d", messageLength);
+    
+        int numReceived = 1;
+        while(numReceived < numMessages){
+            
+		    message = recvMessage(ID, &messageLength);
+		    i = extractSequenceNum(message);
+            // add check for commandIndex around here ? 
+
+		    plog("ID: %d", extractMessageID(message));
+		    plog("Total: %d", extractNumMessages(message));
+		    plog("Sequence: %d", extractSequenceNum(message));
+		    plog("Length: %d", messageLength);
+
+		    if(((char*)messages[i]) == NULL) {
+                messages[i] = message;
+                numReceived++;
+			
+			    //if last message, record length
+			    if(i == numMessages-1) lastMessageLength = messageLength;
+
+                
+		    } else {
+                plog("duplicate message");
+                free(message);
+            }     
+            
+        }
+
+        //stop timer
+	    stopTimer();
+
+        // messages array is filled, lastMessageLength holds last method length
+
+        
+    }
 }
 
 //Below is code that sends the recieves responses, used to be in sendRequest()
-/*
 
-	//start timeout timer
-	setTimer(timeout);
-	
-	//get first message so we can allocate space for all messages
-	int messageLength;
-	void* message = recvMessage(ID, &messageLength);
-	int numMessages = extractNumMessages(message);
-	int i = extractSequenceNum(message);
-	
-	void** messages = malloc(sizeof(void*)*numMessages);
-	memset(messages, 0, sizeof(void*)*numMessages);
-	
-	messages[i] = message;
-	
-	//only the last message's length is important
-	//the other lengths we assume to be equal to RESPONSE_MESSAGE_SIZE
-	int lastMessageLength = numMessages == 1? messageLength : 0;
-
-	plog("ID: %d", extractMessageID(message));
-	plog("Total: %d", extractNumMessages(message));
-	plog("Sequence: %d", extractSequenceNum(message));
-	plog("Length: %d", messageLength);
-
-	int numReceived = 1;
-	//reassemble response messages
-	while(numReceived < numMessages) {
-		message = recvMessage(ID, &messageLength);
-		i = extractSequenceNum(message);
-
-		plog("ID: %d", extractMessageID(message));
-		plog("Total: %d", extractNumMessages(message));
-		plog("Sequence: %d", extractSequenceNum(message));
-		plog("Length: %d", messageLength);
-
-		if(((char*)messages[i]) == NULL) {
-			messages[i] = message;
-			numReceived++;
-			
-			//if last message, record length
-			if(i == numMessages-1)
-				lastMessageLength = messageLength;
-		} else {
-			plog("duplicate message");
-			free(message);
-		}
-	}
 	//fprintf(stderr, "Last message length: %d\n", lastMessageLength);
 	
-	//stop timer
-	stopTimer();
-	
-	int PAYLOAD_SIZE = RESPONSE_MESSAGE_SIZE - 12;
-	*responseLength = (numMessages-1)*PAYLOAD_SIZE + (lastMessageLength-12);
+/*
+	int PAYLOAD_SIZE = RESPONSE_MESSAGE_SIZE - 16;
+	*responseLength = (numMessages-1)*PAYLOAD_SIZE + (lastMessageLength-16);
 	void* fullResponse = malloc(*responseLength);
 	for(i = 0; i < numMessages-1; i++) {
-		memcpy(((char*)fullResponse)+i*PAYLOAD_SIZE, ((char*)messages[i])+12, PAYLOAD_SIZE);
+		memcpy(((char*)fullResponse)+i*PAYLOAD_SIZE, ((char*)messages[i])+16, PAYLOAD_SIZE);
 		free(messages[i]);
 	}
 	//copy last message data
-	memcpy(((char*)fullResponse)+(numMessages-1)*PAYLOAD_SIZE, ((char*)messages[numMessages-1])+12, lastMessageLength-12);
+	memcpy(((char*)fullResponse)+(numMessages-1)*PAYLOAD_SIZE, ((char*)messages[numMessages-1])+16, lastMessageLength-16);
 	free(messages[numMessages-1]);
 
 	//update ID for next call
@@ -222,9 +231,9 @@ commandNode *buildCommandList(char *responseString){
     int currIndex = 0;
     char* command;
     commandNode *head = malloc(sizeof(commandNode));
+    memset(head, 0x00, sizeof(commandNode));
     commandNode *current = head;
     commandNode *next = NULL;
-    head->next = NULL;
 
     while((commandLen = (char)(*responseString)) != 0){
         //extract next command
@@ -253,6 +262,28 @@ commandNode *buildCommandList(char *responseString){
     }
 
     return head;
+}
+
+bool allDataReceived(commandNode *commandList){
+    commandNode *current = commandList->next;
+
+    while(current != NULL){
+        if(current->shouldReceive && !current->received) return false;
+        current = current->next;
+    }
+    return true;
+}
+
+void freeCommandList(commandNode *listHead){
+    commandNode *current = listHead;
+    commandNode *next = NULL;
+
+    while(current != NULL){
+        if(current->command != NULL) free(current->command);
+        next = current->next;
+        free(current);
+        current = next;
+    }
 }
 
 
@@ -298,17 +329,21 @@ int extractSequenceNum(void* message) {
 	return ntohl(*(((uint32_t*) message)+2));
 }
 
-void* recvMessage(int ID, int* messageLength) {
+int extractCommandIndex(void *message){
+    return ntohl(*(((uint32_t*) message)+3));
+}
+
+void* recvMessage(int commandIndex, int* messageLength) {
 	void* message = malloc(RESPONSE_MESSAGE_SIZE);
 	while(true) {
 		int len = recv(sock, message, RESPONSE_MESSAGE_SIZE, 0);
 		if(len <= 0)
 			quit("server doesn't exist or recv() failed");
-		if(len < 12)
+		if(len < 16)
 			quit("improper server response message -- doesn't include required headers");
 		
 		//accept message if it matches request ID
-		if(extractMessageID(message) == ID) {
+		if(extractCommandIndex(message) == commandIndex) {
 			*messageLength = len;
 			return message;
 		}
