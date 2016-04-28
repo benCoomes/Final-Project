@@ -26,7 +26,8 @@ typedef struct commandNode{
     struct commandNode *next;
     int index;
     char *command;
-    bool recieved;
+    bool received;
+    bool shouldReceive;
 } commandNode;
 
 //private functions
@@ -36,7 +37,7 @@ void timedOut(int ignored);
 commandNode *buildCommandList(char* requestString);
 
 void* recvMessage(int ID, int* messageLength);
-void recieveData(void);
+void recvData(int ID, commandNode *commandList);
 int extractMessageID(void* message);
 int extractNumMessages(void* message);
 int extractSequenceNum(void* message);
@@ -127,7 +128,11 @@ void sendRequest(char* requestString, int* responseLength, double timeout) {
 
     }
 
-    //recieveData();
+    //receiveData();
+}
+
+void recvData(int ID, commandNode *commandList){
+    // STUBDEB
 }
 
 //Below is code that sends the recieves responses, used to be in sendRequest()
@@ -218,6 +223,7 @@ commandNode *buildCommandList(char *responseString){
     while((commandLen = (char)(*responseString)) != 0){
         //extract next command
         command = malloc(50);
+        memset(command, 0x00, 50);
         memcpy(command, responseString + 1, commandLen);
         
         //make new commandNode
@@ -226,8 +232,10 @@ commandNode *buildCommandList(char *responseString){
         //fill fields of new commandNode
         next->index = currIndex++;
         next->command = command;
-        next->recieved = false;
+        next->received = false;
         next->next = NULL;
+        if(strstr(command, "GET") != NULL) next->shouldReceive = true;
+        else next->shouldReceive = false;
 
         // add commandNode to list
         current->next = next;
