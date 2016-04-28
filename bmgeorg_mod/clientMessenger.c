@@ -56,10 +56,10 @@ void setCommandReceived(commandNode *commandList, int commandNum);
 void* recvMessage(int ID, int* messageLength);
 void recvData(int ID, commandNode *commandList, double timeout);
 void storeData(commandResponse response, char *command);
-int extractMessageID(void* message);
-int extractNumMessages(void* message);
-int extractSequenceNum(void* message);
-int extractCommandIndex(void *message);
+uint32_t extractMessageID(void* message);
+uint32_t extractNumMessages(void* message);
+uint32_t extractSequenceNum(void* message);
+uint32_t extractCommandIndex(void* message);
 
 void setupMessenger(char* serverHost, char* serverPort, char* _robotID) {
 	assert(serverHost != NULL);
@@ -158,7 +158,7 @@ void sendRequest(char* requestString, int* responseLength, double timeout) {
 
 void recvData(int ID, commandNode *commandList, double timeout) {
     
-    int numCommands = getCommandListLen(commandList);
+    uint32_t numCommands = getCommandListLen(commandList);
     commandResponse *responses = malloc(sizeof(commandResponse) * numCommands);
     memset(responses, 0x00, sizeof(commandResponse) * numCommands);
 
@@ -168,9 +168,9 @@ void recvData(int ID, commandNode *commandList, double timeout) {
 	    /* Get the current message */
 	    int messageLength;
 	    void* message = recvMessage(ID, &messageLength);
-	    int numMessages = extractNumMessages(message);
-	    int seqNum = extractSequenceNum(message);
-        int commandIndex = extractCommandIndex(message);
+	    uint32_t numMessages = extractNumMessages(message);
+	    uint32_t seqNum = extractSequenceNum(message);
+        uint32_t commandIndex = extractCommandIndex(message);
         
         /* Log tracking info */
         plog("ID: %d", extractMessageID(message));
@@ -408,19 +408,19 @@ void stopTimer() {
 	}
 }
 
-int extractMessageID(void* message) {
+uint32_t extractMessageID(void* message) {
 	return ntohl(*((uint32_t*) message));
 }
 
-int extractNumMessages(void* message) {
+uint32_t extractNumMessages(void* message) {
 	return ntohl(*(((uint32_t*) message)+1));
 }
 
-int extractSequenceNum(void* message) {
+uint32_t extractSequenceNum(void* message) {
 	return ntohl(*(((uint32_t*) message)+2));
 }
 
-int extractCommandIndex(void *message){
+uint32_t extractCommandIndex(void* message) {
     return ntohl(*(((uint32_t*) message)+3));
 }
 
