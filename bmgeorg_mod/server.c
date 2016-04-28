@@ -30,7 +30,7 @@
 int readyForNextPacket = NOTREADY;
 typedef struct queueElem {
 	char* robotCommand;	//Cammand to send to robot--Not parsed
-	int ID; //ID of client
+	uint32_t ID; //ID of client
 
 	int commandIndex; // 0 - 6 mapped cammands to client
 	char* msgbody; //Body of message to client
@@ -154,6 +154,9 @@ int main(int argc, char *argv[])
 
 		plog("Received request of %d bytes", recvMsgSize);
 
+		//Will be used to tell when at end of string
+		int size = recvMsgSize - 12;
+
 		//Interpret client request
 		char* requestRobotID = getRobotID(clientBuffer);
 		if(strcmp(robotID, requestRobotID) != 0) {
@@ -161,14 +164,34 @@ int main(int argc, char *argv[])
 			continue;
 		}
 
-		plog("Requested robot ID: %s", requestRobotID);
+		char* toRobotPtr = clientBuffer + 12; //Move ptr to robot ID
+		uint32_t ID = getRequestID(clientBuffer);
+		while(toRobotPtr != 0){
+			toRobotPtr++;
+			size--'
+		}
+		toRobotPtr++;
+		size--;
+		
+		while(size > 0) {
+			int commandStringSize;
 
 
-		for(int i = 0; i < recvMsgSize;i++) {
+
+			commandStringSize = (unsigned short)*(toRobotPtr);
+			toRobotPtr++;
+			size--;
+
 			queueElem_t * element = malloc(sizeof(queueElem_t));
-			strncpy(element->robotCommand,clientBuffer+1,
+			element->ID = ID;
+			element->robotCommand = malloc(commandStringSize + 1);
+			strncpy(element->robotCommand,toRobotPtr,commandStringSize);
+			*(element->robotCommand + commandStringSize) = 0; //Add Null character to terminate string
 
+			toRobotPtr+=(commandStringSize + 1);
+			size-=(commandStringSize + 1);
 
+			enqueue(toRobot,element);
 
 		}
 		while(readyForNextPacket != READY) {
