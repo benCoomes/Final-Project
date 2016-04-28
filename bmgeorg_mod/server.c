@@ -381,7 +381,7 @@ void *sendRecvRobot() {
 			//Calculate wait time (dist - time spent in sendRequest).
 			if(strstr(requestStr, "MOVE") != NULL){
 				double dist = requestStr[7]; //7th character is the distance
-
+				printf("Dist = %d\n",dist);
 				if(dist > timeSpent) {
 					 sleepTime = dist - timeSpent;
 
