@@ -63,10 +63,11 @@ void *sendToClient();
 //Method Signatures
 char* getRobotID(char* msg);
 uint32_t getRequestID(char* msg);
-char* getRequestStr(char* msg);
+char* getRequestStr(queueElem_t msg);
 char* generateHTTPRequest(char* robotAddress, char* robotID, char* requestStr, char* imageID);
 char* getRobotPortForRequestStr(char* requestStr);
 void flushBuffersAndExit();
+double getTime();
 
 
 /*
@@ -79,6 +80,7 @@ unsigned short localUDPPort;
 char* robotAddress;
 char* robotID;
 char* imageID;
+double timeSpent; //DO YOU WANT THIS TO BE GLOBAL MEGAN?
 pthread_mutex_t qMutex = PTHREAD_MUTEX_INITIALIZER;
 
 //Main Method
@@ -89,7 +91,7 @@ int main(int argc, char *argv[])
 	}
 	//read args
 
-	double timeSpent;
+
 	localUDPPort = atoi(argv[1]);
 	robotAddress = argv[2];
 	robotID = argv[3];
@@ -169,7 +171,7 @@ int main(int argc, char *argv[])
 		uint32_t ID = getRequestID(clientBuffer);
 		while(toRobotPtr != 0){
 			toRobotPtr++;
-			size--'
+			size--;
 		}
 		toRobotPtr++;
 		size--;
@@ -512,4 +514,11 @@ int isEmpty(queue_t * queue)
 		return FALSE;
 	}
 
+}
+
+double getTime() {
+   struct timeval curTime;
+   (void) gettimeofday(&curTime, (struct timezone *)NULL);
+   return (((((double) curTime.tv_sec) * 10000000.0)
+      + (double) curTime.tv_usec) / 10000000.0);
 }
