@@ -17,6 +17,8 @@
 #include <time.h>       /* for time() */
 #include <signal.h>
 #include <pthread.h>
+#include <math.h>
+#include <sys/time.h>
 
 #define MAXLINE 1000
 #define TRUE 1
@@ -32,9 +34,13 @@ typedef struct queueElem {
 	char* robotCommand;	//Cammand to send to robot--Not parsed
 	uint32_t ID; //ID of client
 
+	struct sockaddr_in * clientAddress;
+	unsigned int clientAddressLen;
+	int clientSock;
+
 	int commandIndex; // 0 - 6 mapped cammands to client
 	char* msgbody; //Body of message to client
-	char* msglen; //Length of message to client
+	double msglen; //Length of message to client
 } queueElem_t;
 
 /** List node  **/
@@ -187,6 +193,10 @@ int main(int argc, char *argv[])
 
 			queueElem_t * element = malloc(sizeof(queueElem_t));
 			element->ID = ID;
+			element->clientSock = clientSock;
+			element->clientAddress = &clientAddress;
+			element->clientAddressLen = clientAddressLen;
+
 			element->robotCommand = malloc(commandStringSize + 1);
 			strncpy(element->robotCommand,toRobotPtr,commandStringSize);
 			*(element->robotCommand + commandStringSize) = 0; //Add Null character to terminate string
@@ -302,9 +312,17 @@ void flushBuffersAndExit() {
 /*Send commands from robotServer to the actual robot server*/
 void *sendRecvRobot() {
 	while(1) {
+		//Added for Megan
+		double sleepTime;
+		int waitSeconds;
+		int waitUSeconds;
+		double turnAngle;
+		queueElem_t *elem;
+
+
 		if (isEmpty(toRobot) == FALSE) {
 			pthread_mutex_lock(&qMutex);
-			queueElem_t *elem = dequeue(toRobot);
+			elem = dequeue(toRobot);
 			pthread_mutex_unlock(&qMutex);
 			/*sleep(1);
 			free(elem->msgbody);
@@ -314,7 +332,7 @@ void *sendRecvRobot() {
 
 
 
-			char* requestStr = getRequestStr(elem);
+			char* requestStr = getRequestStr(*elem);
 			char* robotPort = getRobotPortForRequestStr(requestStr);
 
 			plog("Request string: %s", requestStr);
@@ -367,20 +385,33 @@ void *sendRecvRobot() {
 			}
 			else if (strstr(requestStr, "TURN") != NULL){
 				const double actualSpeed = .89*M_PI/4;
-	      //Calculate wait time (turnAngle/(M_PI/4) - time spent in sendRequest).
-	      if(turnAngle/actualSpeed > timeSpent) {
-	         sleepTime = turnAngle/actualSpeed - timeSpent;
+			      //Calculate wait time (turnAngle/(M_PI/4) - time spent in sendRequest).
 
-	         plog("waiting for %lf seconds", sleepTime);
+				char* requestPtr = requestStr;
+				int spaceCounter;
+				while(spaceCounter != 2) {
+					if(*requestPtr == ' ') {
+						spaceCounter++;
+					}
+					requestPtr++;
+				}
 
-	         waitSeconds = (int) sleepTime;
-	         sleepTime -= waitSeconds;
-	         waitUSeconds = (int) (sleepTime*1000000);
+				turnAngle = (double)*requestPtr;
+				printf("Turn Angle = %f\n", turnAngle);
 
-	         //Wait until robot turns to correct orientation.
-	         sleep(waitSeconds);
-	         usleep(waitUSeconds);
-	      }
+				if(turnAngle/actualSpeed > timeSpent) {
+					sleepTime = turnAngle/actualSpeed - timeSpent;
+
+					plog("waiting for %lf seconds", sleepTime);
+
+					waitSeconds = (int) sleepTime;
+					sleepTime -= waitSeconds;
+					waitUSeconds = (int) (sleepTime*1000000);
+
+					//Wait until robot turns to correct orientation.
+					sleep(waitSeconds);
+					usleep(waitUSeconds);
+				}
 			}
 
 
@@ -426,8 +457,8 @@ void *sendRecvRobot() {
 			#endif
 
 
-			elem.msgbody = httpBody;
-			elem.msglen = httpBodyLength;
+			elem->msgbody = httpBody;
+			elem->msglen = httpBodyLength;
 
 			free(httpResponse);
 
@@ -451,8 +482,8 @@ void *sendToClient() {
 			pthread_mutex_unlock(&qMutex);
 
 			//Send response back to the UDP client
-			uint32_t requestID = getRequestID(clientBuffer); //may need to be included with struct
-			sendResponse(clientSock, &clientAddress, clientAddressLen, requestID, elem.msgbody, elem.msglen);
+			uint32_t requestID = elem->ID; //may need to be included with struct
+			sendResponse(elem->clientSock, elem->clientAddress, elem->clientAddressLen, requestID, elem->msgbody, elem->msglen);
 
 			plog("sent http body response to client");
 
