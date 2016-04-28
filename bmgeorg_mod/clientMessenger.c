@@ -121,10 +121,6 @@ void sendRequest(char* requestString, int* responseLength, double timeout) {
     }
 }
 
-	
-
-	
-
 //Below is code that sends the recieves responses, used to be in sendRequest()
 
 /*
