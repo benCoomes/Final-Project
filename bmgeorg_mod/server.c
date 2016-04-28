@@ -216,6 +216,7 @@ int main(int argc, char *argv[])
 }
 
 char* getRobotID(char* msg) {
+	printf("Robot ID = %s\n",msg+4);
 	return msg+4;
 }
 
