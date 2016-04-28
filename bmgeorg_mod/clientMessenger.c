@@ -70,6 +70,9 @@ void sendRequest(char* requestString, int* responseLength, double timeout) {
     void *request;
     char *segment;
 
+    //copy requestString for furure use
+    char *requestStringCopy = requestString;
+
     // 12 bytes for ID, message count, and message index + robotID length 
     // + 1 byte for null char terminator for robotID
     metadataLen = 12+strlen(robotID)+1;
@@ -125,6 +128,9 @@ void sendRequest(char* requestString, int* responseLength, double timeout) {
 		requestString += segmentLen;
 		free(request);
 		free(segment);
+
+        commandNode *commandList = buildCommandList(requestStringCopy);
+        recvData(ID, commandList);
 
     }
 
