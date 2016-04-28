@@ -28,7 +28,7 @@
 
 //Below added - Ben
 #define DEBUG
-
+int finalIndex;
 int readyForNextPacket = NOTREADY;
 typedef struct queueElem {
 	char* robotCommand;	//Cammand to send to robot--Not parsed
@@ -194,6 +194,8 @@ int main(int argc, char *argv[])
 		fflush(stdout);
 		*/
 		/**/
+        readyForNextPacket = NOTREADY;
+    
         int commandIndex = 0;
 		while(size > 1) {
 			int commandStringSize;
@@ -223,6 +225,7 @@ int main(int argc, char *argv[])
 			enqueue(toRobot,element);
 			pthread_mutex_unlock(&qMutex);
 		}
+        finalIndex = commandIndex -1;
 		while(readyForNextPacket != READY) {
 			sleep(1);
 		}
@@ -481,9 +484,15 @@ void *sendRecvRobot() {
 
 			plog("freed http response");
 
-			pthread_mutex_lock(&qMutex);
-			enqueue(toClient, elem);
-			pthread_mutex_unlock(&qMutex);
+            if(strstr(requestStr, "GET") != NULL){
+    			pthread_mutex_lock(&qMutex);
+	    		enqueue(toClient, elem);
+		    	pthread_mutex_unlock(&qMutex);
+            }
+
+            if(elem->commandIndex == finalIndex){
+                readyForNextPacket = READY;
+            }
 		} else {
 			pthread_yield();
 		}
@@ -497,13 +506,13 @@ void *sendToClient() {
 			pthread_mutex_lock(&qMutex);
 			queueElem_t *elem = dequeue(toClient);
 			pthread_mutex_unlock(&qMutex);
-
-			//Send response back to the UDP client
+            
+		    //Send response back to the UDP client
 			uint32_t requestID = elem->ID; //may need to be included with struct
             int commandIndex = elem->commandIndex;
 			sendResponse(elem->clientSock, elem->clientAddress, elem->clientAddressLen, requestID, commandIndex, elem->msgbody, elem->msglen);
-
-			plog("sent http body response to client");
+			
+            plog("sent http body response to client");
 
 
 		} else {
