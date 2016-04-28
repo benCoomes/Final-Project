@@ -194,7 +194,7 @@ int main(int argc, char *argv[])
 		fflush(stdout);
 		*/
 		/**/
-		while(size > 0) {
+		while(size > 1) {
 			int commandStringSize;
 
 
@@ -330,6 +330,7 @@ void *sendRecvRobot() {
 		int waitSeconds;
 		int waitUSeconds;
 		double turnAngle;
+		double turnSpeed;
 		queueElem_t *elem;
 
 
@@ -357,10 +358,10 @@ void *sendRecvRobot() {
 				quit("could not connect to robot");
 			}
 
-			plog("Set up robot socket: %d", robotSock);
+			//plog("Set up robot socket: %d", robotSock);
 
 			char* httpRequest = generateHTTPRequest(robotAddress, robotID, requestStr, imageID);
-			plog("Created http request: %s", httpRequest);
+			//plog("Created http request: %s", httpRequest);
 
 
 
@@ -372,16 +373,16 @@ void *sendRecvRobot() {
 			plog("Sent http request to robot");
 
 			free(httpRequest);
-			plog("freed http request");
+			//plog("freed http request");
 
 			timeSpent = getTime() - timeSpent;
 
-			plog("Time spent sending request and getting response: %lf", timeSpent);
+			//plog("Time spent sending request and getting response: %lf", timeSpent);
 
 			//Calculate wait time (dist - time spent in sendRequest).
 			if(strstr(requestStr, "MOVE") != NULL){
-				double dist = requestStr[7]; //7th character is the distance
-				printf("Dist = %d\n",dist);
+				double dist = requestStr[7] - 48; //7th character is the distance
+				printf("Dist = %f\n",dist);
 				if(dist > timeSpent) {
 					 sleepTime = dist - timeSpent;
 
@@ -408,9 +409,10 @@ void *sendRecvRobot() {
 					}
 					requestPtr++;
 				}
-
-				turnAngle = (double)*requestPtr;
-				printf("Turn Angle = %f\n", turnAngle);
+				//turnAngle = atof(requestPtr);
+				sscanf(requestPtr,"TURN %lf %lf",&turnSpeed,&turnAngle);
+				printf("Angle = %s\n",requestPtr);
+				printf("Turn Angle = %lf\n", turnAngle);
 
 				if(turnAngle/actualSpeed > timeSpent) {
 					sleepTime = turnAngle/actualSpeed - timeSpent;

@@ -56,7 +56,7 @@ void sendResponse(int sock, struct sockaddr_in* recipientAddr, int addressSize, 
 		else if(numSent != size)
 			quit("sendto() did not send full message in serverMessenger");
 			
-		plog("Sent UDP message %d with %d bytes\n", i, numSent);
+		//plog("Sent UDP message %d with %d bytes\n", i, numSent);
 	}
 	
 	//free all messages
