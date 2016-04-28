@@ -160,7 +160,12 @@ int main(int argc, char *argv[])
 				(struct sockaddr *) &clientAddress, &clientAddressLen)) < 0) {
 			quit("could not receive client request - recvfrom() failed");
 		}
-
+		printf("printing header\n");
+		int i = 0;
+		while(i < 16) {
+			printf("%u",(uint8_t)*(clientBuffer+i));
+			i++;
+		}
 		plog("Received request of %d bytes", recvMsgSize);
 
 		//Will be used to tell when at end of string
