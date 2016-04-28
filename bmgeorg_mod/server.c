@@ -188,10 +188,12 @@ int main(int argc, char *argv[])
 		}
 		toRobotPtr++;
 		size--;
-		puts("RobotPtr = ");
+		/*When Printing out commands*/
+		/*
 		printf("Robotptr g= %s\n",toRobotPtr);
 		fflush(stdout);
-		
+		*/
+		/**/
 		while(size > 0) {
 			int commandStringSize;
 
@@ -210,9 +212,10 @@ int main(int argc, char *argv[])
 			element->robotCommand = malloc(commandStringSize + 1);
 			strncpy(element->robotCommand,toRobotPtr,commandStringSize);
 			*(element->robotCommand + commandStringSize) = 0; //Add Null character to terminate string
+			printf("Command String = %s\n",element->robotCommand);
 
-			toRobotPtr+=(commandStringSize + 1);
-			size-=(commandStringSize + 1);
+			toRobotPtr+=(commandStringSize);
+			size-=(commandStringSize);
 
 			pthread_mutex_lock(&qMutex);
 			enqueue(toRobot,element);
@@ -226,7 +229,6 @@ int main(int argc, char *argv[])
 }
 
 char* getRobotID(char* msg) {
-	printf("Robot ID = %s\n",msg+12);
 	return msg+12;
 }
 
