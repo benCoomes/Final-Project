@@ -22,6 +22,12 @@ const int COMMAND_MESSAGE_SIZE = 1400;
 int sock = -1;
 char* robotID;
 
+/* File nums */
+int imageCount = 0;
+int GPSCount = 0;
+int DGPSCount = 0;
+int lasersCount = 0;
+
 typedef struct commandNode{
     struct commandNode *next;
     int index;
@@ -47,7 +53,7 @@ bool allDataReceived(commandNode *commandList);
 int getCommandListLen(commandNode *commandList);
 void setCommandReceived(commandNode *commandList, int commandNum);
 
-void* recvMessage(int commandIndex, int* messageLength);
+void* recvMessage(int ID, int* messageLength);
 void recvData(int ID, commandNode *commandList, double timeout);
 void storeData(commandResponse response, char *command);
 int extractMessageID(void* message);
@@ -120,9 +126,12 @@ void sendRequest(char* requestString, int* responseLength, double timeout) {
 		memcpy(segment, requestString, segmentLen);
 		memcpy(((char*)request)+12+strlen(robotID)+1, segment, segmentLen);
 
-/*		int byte;
+/*		//Testing
+		int byte;
 		for(byte = 0; byte < requestLen; byte++){
 			fprintf(stdout, "  %02x", *(((char*)request) + byte));
+            if(((byte + 1 ) % 16) == 0)
+                fprintf(stdout, "\n");
 		}
 		fprintf(stdout, "\n\n");
 		for(byte = 0; byte < requestLen; byte++){
@@ -144,7 +153,7 @@ void sendRequest(char* requestString, int* responseLength, double timeout) {
     }
 
     commandNode *commandList = buildCommandList(requestStringCopy);
-  //  recvData(ID, commandList, timeout);
+    recvData(ID, commandList, timeout);
 }
 
 void recvData(int ID, commandNode *commandList, double timeout) {
@@ -213,47 +222,70 @@ void recvData(int ID, commandNode *commandList, double timeout) {
     /* Print the received command information */
     commandNode *currNode = commandList->next;
     int i = 0;
-    while(curr != NULL)
+    while(currNode != NULL)
     {
         if(currNode->shouldReceive)
             storeData(responses[i], currNode->command);
         currNode = currNode->next;
         i++;
     }
+
+    /* Update ID for next call */
+    ID++;
+    free(responses);
 }
 
+/* Prints the data in this commandReponse to a file based off the command type
+ * in command. Destroys message data in commandResponse. */
 void storeData(commandResponse response, char *command)
 {
-    uint32_t messageLen = ((response.numMessages - 1) * RESPONSE_MESSAGE_SIZE) +
+    /* Extract the full message from the commandResponse struct */
+    int PAYLOAD_SIZE = RESPONSE_MESSAGE_SIZE - 16;
+    uint32_t messageLen = ((response.numMessages - 1) * PAYLOAD_SIZE) +
                           response.lastMessageLength;
-    char *fullMessage;
-}
-//Below is code that sends the recieves responses, used to be in sendRequest()
+    void *fullResponse = malloc(messageLen);
+    int i;
 
-	//fprintf(stderr, "Last message length: %d\n", lastMessageLength);
-	
-/*
-	int PAYLOAD_SIZE = RESPONSE_MESSAGE_SIZE - 16;
-	*responseLength = (numMessages-1)*PAYLOAD_SIZE + (lastMessageLength-16);
-	void* fullResponse = malloc(*responseLength);
-	for(i = 0; i < numMessages-1; i++) {
-		memcpy(((char*)fullResponse)+i*PAYLOAD_SIZE, ((char*)messages[i])+16, PAYLOAD_SIZE);
-		free(messages[i]);
-	}
-	//copy last message data
-	memcpy(((char*)fullResponse)+(numMessages-1)*PAYLOAD_SIZE, ((char*)messages[numMessages-1])+16, lastMessageLength-16);
-	free(messages[numMessages-1]);
+    /* Print tracking data */
+    plog("Full response length: %d", messageLen);
 
-	//update ID for next call
-	ID++;
-	
-	free(messages);
-	
-	plog("Full response length: %d", *responseLength);
-	
-	return fullResponse;
+    /* Loop through the received messages to piece them together */
+    for(i = 0; i < response.numMessages - 1; i++) {
+        memcpy(((char *)fullResponse) + (i * PAYLOAD_SIZE),
+               ((char *)response.messages[i]) + 16, PAYLOAD_SIZE);
+        free(response.messages[i]);
+    }
+    memcpy(((char *)fullResponse) + (i * PAYLOAD_SIZE),
+           ((char *)response.messages[i]) + 16, response.lastMessageLength - 16);
+    free(response.messages[response.numMessages - 1]);
+
+    /* Open file for printing */
+    FILE *file;
+    char *fileName = (char *)malloc(50);
+    memset(fileName, 0x00, 50);
+
+    /* Create file name based on command type */
+    if(strstr(command, "GET IMAGE") != NULL)
+        sprintf(fileName, "image-%d.jpg", imageCount++);
+    else if(strstr(command, "GET DGPS") != NULL)
+        sprintf(fileName, "DGPS-%d.txt", DGPSCount++);
+    else if(strstr(command, "GET GPS") != NULL)
+        sprintf(fileName, "GPS-%d.txt", GPSCount++);
+    else if(strstr(command, "GET LASERS") != NULL)
+        sprintf(fileName, "lasers-%d.txt", lasersCount++);
+    else
+    {
+        plog("Command type not resolved in storeData().");
+        return;
+    }
+
+    /* Open the file */
+    file = fopen(fileName, "w+");
+    if(fwrite(fullResponse, sizeof(char), messageLen, file) != messageLen)
+        quit("fwrite() failed in storeData().");
+    fclose(file);
+    free(fullResponse);
 }
-*/
 
 commandNode *buildCommandList(char *responseString){
     int commandLen;
@@ -392,7 +424,7 @@ int extractCommandIndex(void *message){
     return ntohl(*(((uint32_t*) message)+3));
 }
 
-void* recvMessage(int commandIndex, int* messageLength) {
+void* recvMessage(int ID, int* messageLength) {
 	void* message = malloc(RESPONSE_MESSAGE_SIZE);
 	while(true) {
 		int len = recv(sock, message, RESPONSE_MESSAGE_SIZE, 0);
@@ -402,7 +434,7 @@ void* recvMessage(int commandIndex, int* messageLength) {
 			quit("improper server response message -- doesn't include required headers");
 		
 		//accept message if it matches request ID
-		if(extractCommandIndex(message) == commandIndex) {
+		if(extractMessageID(message) == ID) {
 			*messageLength = len;
 			return message;
 		}
