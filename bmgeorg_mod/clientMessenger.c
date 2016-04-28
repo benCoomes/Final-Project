@@ -30,6 +30,13 @@ typedef struct commandNode{
     bool shouldReceive;
 } commandNode;
 
+typedef struct commandResponse{
+    uint32_t numReceived;
+    uint32_t numMessages;
+    uint32_t lastMessageLength;
+    void **messages;
+} commandResponse;
+
 //private functions
 void setTimer(double seconds);
 void stopTimer();
@@ -37,9 +44,12 @@ void timedOut(int ignored);
 commandNode *buildCommandList(char* requestString);
 void freeCommandList(commandNode *commandList);
 bool allDataReceived(commandNode *commandList);
+int getCommandListLen(commandNode *commandList);
+void setCommandReceived(commandNode *commandList, int commandNum);
 
 void* recvMessage(int commandIndex, int* messageLength);
 void recvData(int ID, commandNode *commandList, double timeout);
+void storeData(commandResponse response, char *command);
 int extractMessageID(void* message);
 int extractNumMessages(void* message);
 int extractSequenceNum(void* message);
@@ -137,68 +147,87 @@ void sendRequest(char* requestString, int* responseLength, double timeout) {
   //  recvData(ID, commandList, timeout);
 }
 
-void recvData(int ID, commandNode *commandList, double timeout){
+void recvData(int ID, commandNode *commandList, double timeout) {
     
-    while(!allDataReceived(commandList)){
+    int numCommands = getCommandListLen(commandList);
+    commandResponse *responses = malloc(sizeof(commandResponse) * numCommands);
+    memset(responses, 0x00, sizeof(commandResponse) * numCommands);
+
+    while(!allDataReceived(commandList)) {
 	    setTimer(timeout);
 
-	    //get first message so we can allocate space for all messages
+	    /* Get the current message */
 	    int messageLength;
 	    void* message = recvMessage(ID, &messageLength);
 	    int numMessages = extractNumMessages(message);
-	    int i = extractSequenceNum(message);
+	    int seqNum = extractSequenceNum(message);
         int commandIndex = extractCommandIndex(message);
-             
-	    void** messages = malloc(sizeof(void*)*numMessages);
-	    memset(messages, 0, sizeof(void*)*numMessages);
-
-	    messages[i] = message;
-
-	    //only the last message's length is important
-	    //the other lengths we assume to be equal to RESPONSE_MESSAGE_SIZE
-	    int lastMessageLength = numMessages == 1? messageLength : 0;
         
-	    plog("ID: %d", extractMessageID(message));
-	    plog("Total: %d", extractNumMessages(message));
-	    plog("Sequence: %d", extractSequenceNum(message));
+        /* Log tracking info */
+        plog("ID: %d", extractMessageID(message));
+	    plog("Total: %d", numMessages);
+	    plog("Sequence: %d", seqNum);
+        plog("Command Index: %d", commandIndex);
 	    plog("Length: %d", messageLength);
-    
-        int numReceived = 1;
-        while(numReceived < numMessages){
-            
-		    message = recvMessage(ID, &messageLength);
-		    i = extractSequenceNum(message);
-            // add check for commandIndex around here ? 
 
-		    plog("ID: %d", extractMessageID(message));
-		    plog("Total: %d", extractNumMessages(message));
-		    plog("Sequence: %d", extractSequenceNum(message));
-		    plog("Length: %d", messageLength);
+        /* Check if this is a valid command index */
+        if(commandIndex >= numCommands)
+            quit("Unexpected command index received in recvData().");
 
-		    if(((char*)messages[i]) == NULL) {
-                messages[i] = message;
-                numReceived++;
-			
-			    //if last message, record length
-			    if(i == numMessages-1) lastMessageLength = messageLength;
-
-                
-		    } else {
-                plog("duplicate message");
-                free(message);
-            }     
-            
+        /* Initialize the message's entry if it has not yet been done */
+        if(responses[commandIndex].messages == NULL) {
+            responses[commandIndex].messages = malloc(sizeof(void*)*numMessages);
+            memset(responses[commandIndex].messages, 0x00, sizeof(void*)*numMessages);
+            responses[commandIndex].numMessages = numMessages;
+            responses[commandIndex].numReceived = 0;
+	        responses[commandIndex].lastMessageLength = (numMessages == 1 ?
+                                                          messageLength : 0);
         }
+	    
+        /* Check if this is a valid sequence number */
+        if(seqNum >= numMessages)
+            quit("Unexpected sequence number received in recvData().");
+
+        /* Check if this message was a repeated receive */
+        if(((char*)responses[commandIndex].messages[seqNum]) == NULL) {
+            (responses[commandIndex].messages)[seqNum] = message;
+            (responses[commandIndex].numReceived)++;
+
+            /* If this is the last message for a response, record length */
+            if(seqNum == numMessages - 1)
+                responses[commandIndex].lastMessageLength = messageLength;
+        } else {
+            plog("Duplicate message received.");
+            free(message);
+        }
+
+        /* Update if this command is now fully received */
+        if(responses[commandIndex].numReceived ==
+           responses[commandIndex].numMessages)
+            setCommandReceived(commandList, commandIndex);
 
         //stop timer
 	    stopTimer();
+    }
 
-        // messages array is filled, lastMessageLength holds last method length
-
-        
+    /* Print the received command information */
+    commandNode *currNode = commandList->next;
+    int i = 0;
+    while(curr != NULL)
+    {
+        if(currNode->shouldReceive)
+            storeData(responses[i], currNode->command);
+        currNode = currNode->next;
+        i++;
     }
 }
 
+void storeData(commandResponse response, char *command)
+{
+    uint32_t messageLen = ((response.numMessages - 1) * RESPONSE_MESSAGE_SIZE) +
+                          response.lastMessageLength;
+    char *fullMessage;
+}
 //Below is code that sends the recieves responses, used to be in sendRequest()
 
 	//fprintf(stderr, "Last message length: %d\n", lastMessageLength);
@@ -286,6 +315,36 @@ void freeCommandList(commandNode *listHead){
     }
 }
 
+int getCommandListLen(commandNode *commandList)
+{
+    int len = 0;
+    commandNode *current = commandList->next;
+
+    while(current != NULL)
+    {
+        len++;
+        current = current->next;
+    }
+
+    return len;
+}
+
+void setCommandReceived(commandNode *commandList, int commandNum)
+{
+    int currCommand = 0;
+    commandNode *currNode = commandList->next;
+
+    while((currCommand < commandNum) && (currNode != NULL))
+    {
+        currNode = currNode->next;
+        currCommand++;
+    }
+
+    if(currNode == NULL)
+        quit("Invalid commandNum in setCommandReceived().");
+
+    currNode->received = true;
+}
 
 void setTimer(double seconds) {
 	struct itimerval it_val;
