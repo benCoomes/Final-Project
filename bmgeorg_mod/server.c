@@ -21,31 +21,30 @@
 #define MAXLINE 1000
 #define TRUE 1
 #define FALSE 0
+#define READY 1
+#define NOTREADY 0
 
 //Below added - Ben
 #define DEBUG
 
+int readyForNextPacket = NOTREADY;
+typedef struct queueElem {
+	char* robotCommand;	//Cammand to send to robot--Not parsed
+	int ID; //ID of client
 
-typedef struct queuePtr {
-	char* robotComm;
-	int port; //port to send message to 
-	int commandCode; // 0 - 6 mapped to different client commands
-	double waitTime; //NULL if not used
-
-
-	char* msgbody;
-	char* msglen;
-	char* msgtype;
+	int commandIndex; // 0 - 6 mapped cammands to client
+	char* msgbody; //Body of message to client
+	char* msglen; //Length of message to client
 } queueElem_t;
 
 /** List node  **/
 typedef struct queueNode {
-	queueElem_t *queuePtr;               /* Pointer to queue record         */
+	queueElem_t *queueElem;               /* Pointer to queue record         */
 	struct queueNode *next;        /* Pointer to next node          */
 	struct queueNode *prev;        /* Pointer to next node          */
 } queueNode_t;
 
-/** Car list **/
+/** Queue list **/
 typedef struct queueList {
 	queueNode_t *head;
 	queueNode_t *tail;
@@ -69,21 +68,6 @@ char* generateHTTPRequest(char* robotAddress, char* robotID, char* requestStr, c
 char* getRobotPortForRequestStr(char* requestStr);
 void flushBuffersAndExit();
 
-/*Experimental*/
-
-typedef struct {
-	char* robotComm;
-	int port; //port to send message to 
-	int commandCode; // 0 - 6 mapped to different client commands
-	double waitTime; //NULL if not used
-} command;
-
-typedef struct {
-	char* msgbody;
-	char* msglen;
-	char* msgtype;
-} clientMsg;
-/*Experimental*/
 
 /*
 3 queues will be used to generate tasks
@@ -138,10 +122,11 @@ int main(int argc, char *argv[])
 	plog("binded to client socket");
 
 
-
+	/*Create the queues*/
         toRobot = malloc(sizeof(queue_t));
         toClient = malloc(sizeof(queue_t));
 
+	/*Create the threads*/
 	pthread_t t1, t2;
 
 	pthread_create(&t1, NULL, sendRecvRobot, NULL);
@@ -164,8 +149,20 @@ int main(int argc, char *argv[])
 				(struct sockaddr *) &clientAddress, &clientAddressLen)) < 0) {
 			quit("could not receive client request - recvfrom() failed");
 		}
-		
+
 		plog("Received request of %d bytes", recvMsgSize);
+
+
+		for(int i = 0; i < recvMsgSize;i++) {
+			queueElem_t * element = malloc(sizeof(queueElem_t));
+			strncpy(element->robotCommand,clientBuffer+1,
+
+
+
+		}
+		while(readyForNextPacket != READY) {
+			sleep(1);
+		}
 
 		//Interpret client request
 		char* requestRobotID = getRobotID(clientBuffer);
@@ -354,12 +351,15 @@ void flushBuffersAndExit() {
 void *sendRecvRobot() {
 	while(1) {
 		if (isEmpty(toRobot) == FALSE) {
+			//Add locks!
 			queueElem_t *elem = dequeue(toRobot);
 			sleep(1);
 			free(elem->msgbody);
 			elem->msgbody = malloc(sizeof(char) * 8);
 			strcpy(elem->msgbody, "Recvd");
+			
 
+			//Add locks!
 			enqueue(toClient, elem);
 		} else {
 			pthread_yield();
@@ -389,7 +389,7 @@ return NULL;
 void enqueue(queue_t * queue, queueElem_t *elem)
 {
 	queueNode_t *Node = malloc(sizeof(queueNode_t));
-	Node->queuePtr = elem;
+	Node->queueElem = elem;
 	if( queue->tail == NULL ) {
 		queue->head = Node;
 		queue->tail = Node;
@@ -413,12 +413,12 @@ queueElem_t * dequeue(queue_t * queue)
 		queueNode_t *tempNode = queue->head;
 		queue->head = NULL;
 		queue->tail = NULL;
-		return tempNode->queuePtr;
+		return tempNode->queueElem;
 	} else {
 		queueNode_t *tempNode = queue->head;
 		queue->head->next->prev = NULL;
 		queue->head = queue->head->next;
-		return tempNode->queuePtr;
+		return tempNode->queueElem;
 	}
 }
 
