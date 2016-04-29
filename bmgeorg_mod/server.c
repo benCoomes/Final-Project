@@ -1,3 +1,17 @@
+/*
+Names: Jonathan Sarasua, Joshua Dunster, Ben Coomes, Megan Fowler
+
+Layout: The code is split into three parts. The main function takes in commands
+	from a client, parses them for necessary pieces, and places them in a 
+	queue for the sendRecvRobot function to handle. sendRecvRobot handles
+	communication with the robot. When it gets responses back, minimal
+	parsing occurs before adding it to another queue for sending back to the
+	client. The sendToClient function takes these elements and sends them
+	on to the client. All three of these functions are threaded, so they are
+	all running at the same time.
+*/
+
+
 #define _GNU_SOURCE
 
 #include "serverMessenger.h"
@@ -33,7 +47,10 @@ to receive more messages.
 int finalIndex;
 int readyForNextPacket = NOTREADY;
 
-
+/*
+The following three structs make up the queue. queueList and queueNode are the 
+skeleton of the queue while queueElem contains the data.
+*/
 typedef struct queueElem {
 	char* robotCommand;	//Command to send to robot--Not parsed
 	uint32_t ID; //ID of client
@@ -49,9 +66,9 @@ typedef struct queueElem {
 
 /** List node  **/
 typedef struct queueNode {
-	queueElem_t *queueElem;               /* Pointer to queue record         */
-	struct queueNode *next;        /* Pointer to next node          */
-	struct queueNode *prev;        /* Pointer to next node          */
+	queueElem_t *queueElem;
+	struct queueNode *next;
+	struct queueNode *prev;
 } queueNode_t;
 
 /** Queue list **/
@@ -60,9 +77,9 @@ typedef struct queueList {
 	queueNode_t *tail;
 } queue_t;
 
+//Queues for communication between threads
 queue_t *toRobot;
 queue_t *toClient;
-queue_t *parseToClient;
 
 void enqueue(queue_t * queue, queueElem_t *elem);
 queueElem_t * dequeue(queue_t * queue);
@@ -81,16 +98,12 @@ double getTime();
 
 
 /*
-3 queues will be used to generate tasks
-
-
+These globals are variable that will be used by all three threads.
 */
-
 unsigned short localUDPPort;
 char* robotAddress;
 char* robotID;
 char* imageID;
-double timeSpent; //DO YOU WANT THIS TO BE GLOBAL MEGAN?
 pthread_mutex_t qMutex = PTHREAD_MUTEX_INITIALIZER;
 
 //Main Method
@@ -100,8 +113,6 @@ int main(int argc, char *argv[])
 		quit("Usage: %s <server_port> <robot_IP/robot_hostname> <robot_ID> <image_id>", argv[0]);
 	}
 	//read args
-
-
 	localUDPPort = atoi(argv[1]);
 	robotAddress = argv[2];
 	robotID = argv[3];
@@ -159,7 +170,7 @@ int main(int argc, char *argv[])
 		memset(clientBuffer, 0, MAXLINE+1);
 
 		int recvMsgSize;
-		//Block until receive a guess from a client
+		//Wait until we receive message
 		if((recvMsgSize = recvfrom(clientSock, clientBuffer, MAXLINE, 0,
 				(struct sockaddr *) &clientAddress, &clientAddressLen)) < 0) {
 			quit("could not receive client request - recvfrom() failed");
@@ -171,10 +182,12 @@ int main(int argc, char *argv[])
 			printf("%u ",(uint8_t)*(clientBuffer+i));
 			i++;
 		}
-		/*Header Check ^^*/
+		/*Header Check*/
 		plog("Received request of %d bytes", recvMsgSize);
 
-		//Will be used to tell when at end of string
+		//This size will be decremented as we pare through buffer
+		//Once it reaches the end, we know we're done with message.
+		//12 is the size of the header before robot ID
 		int size = recvMsgSize - 12;
 
 		//Interpret client request
@@ -196,6 +209,11 @@ int main(int argc, char *argv[])
         	readyForNextPacket = NOTREADY;
         	int commandIndex = 0;
 
+		//There is usually a null character left over at the end, so 
+		//we loop until toRobotPtr is only pointing to it.
+
+		//This loop handles enqueuing all of the commands for the 
+		//sendRecvRobot function to handle
 		while(size > 1) {
 			int commandStringSize;
 
@@ -220,11 +238,12 @@ int main(int argc, char *argv[])
 			toRobotPtr+=(commandStringSize);
 			size-=(commandStringSize);
 
+			//Locks protect the code where threads may interfere with each other.
 			pthread_mutex_lock(&qMutex);
 			enqueue(toRobot,element);
 			pthread_mutex_unlock(&qMutex);
 		}
-        finalIndex = commandIndex -1;
+        	finalIndex = commandIndex -1;
 		while(readyForNextPacket != READY) {
 			sleep(1);
 		}
@@ -336,6 +355,7 @@ void *sendRecvRobot() {
 		double turnAngle;
 		double turnSpeed;
 		queueElem_t *elem;
+		double timeSpent;
 
 
 		if (isEmpty(toRobot) == FALSE) {
