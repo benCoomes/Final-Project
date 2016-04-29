@@ -4,6 +4,12 @@ Ben Coomes
 Joshua Dunster
 Megan Fowler
 Jonathan Sarasua
+
+Super grouped with group 2:
+T.J Willis
+Dalton
+Kyra
+Andrew
 _______________________________________________________________________________
 
 DESCRIPTION
@@ -30,7 +36,7 @@ _______________________________________________________________________________
 COMMENTS
 
 We measured a speedup of about 1.18 when compared to bmgeorg's initial 
-implementation. 
+implementation. We are very proud. 
 
 _______________________________________________________________________________
 
@@ -39,7 +45,14 @@ KNOWN PROBLEMS
 Because the robot was 'lost' (in an area of the virtual world with no 
 landmarks), we were unable to verify that MOVE, TURN, and STOP commands sent to
 the robot had their intended effect. We have no reason to suspect that they do
-not work as intented. 
+not work as intented.
+
+Our server is also not able to handle requests from multiple clients at the 
+same time. 
+
+Additionally, we have not been able to test our client with the other group's 
+server beacuse their server code is not ready yet (as of 9:15 pm 4-28-16). 
+However, we were able to successfully use their client with our server. 
 _______________________________________________________________________________
 
 DESIGN

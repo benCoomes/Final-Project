@@ -5,6 +5,7 @@
 *.tar
 *.data
 *.swp
+*.o
 robotClient
 robotServer
 dummyServer
