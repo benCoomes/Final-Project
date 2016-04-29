@@ -76,7 +76,19 @@ a queue of commands to process.
 The client waits to recieve data from the middleware. It stops waiting when a 
 timeout is reached or when all of the expected data has been recieved. Data 
 is only expected to come back from commands that contain the string "GET".
-The data for each command is written into a file. 
+The data for each command is written into a file.
+
+Compression is used during the transmission of image data from the middleware
+software to the client software. The algorithm used is a basic dictionary
+approach which replaces repeated patterns of four characters in a row with a
+dictionary index number. The dictionary built which holds the indices of each
+repeated substring is created and prepended to the compressed string, and can
+be decoded in order to rebuild the dictionary in the decompression function.
+In order to ease the composition of the compression functions, they were
+written in C++ with C wrapper functions to convert C-string inputs to C++
+string objects, and C++ string object outputs to C-string outputs. This
+allowed for C++ library functions for map and vector data structures to be
+used.
 _______________________________________________________________________________ 
 
 
