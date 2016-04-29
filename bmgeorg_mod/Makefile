@@ -6,6 +6,7 @@ DEPS = utility.h utility.c Makefile setupClientSocket.inc
 OBJS = compression.o server.o client.o utility.o clientMessenger.o serverMessenger.o
 
 all:
+	make clean
 	make compile
 
 compile:
