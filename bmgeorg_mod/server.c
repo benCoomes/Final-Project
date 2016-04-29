@@ -188,15 +188,10 @@ int main(int argc, char *argv[])
 		}
 		toRobotPtr++;
 		size--;
-		/*When Printing out commands*/
-		/*
-		printf("Robotptr g= %s\n",toRobotPtr);
-		fflush(stdout);
-		*/
-		/**/
-        readyForNextPacket = NOTREADY;
-    
-        int commandIndex = 0;
+
+        	readyForNextPacket = NOTREADY;
+        	int commandIndex = 0;
+
 		while(size > 1) {
 			int commandStringSize;
 
@@ -343,11 +338,6 @@ void *sendRecvRobot() {
 			pthread_mutex_lock(&qMutex);
 			elem = dequeue(toRobot);
 			pthread_mutex_unlock(&qMutex);
-			/*sleep(1);
-			free(elem->msgbody);
-			elem->msgbody = malloc(sizeof(char) * 8);
-			strcpy(elem->msgbody, "Recvd");
-			*/
 
 
 
