@@ -26,12 +26,16 @@
 #define READY 1
 #define NOTREADY 0
 
-//Below added - Ben
-#define DEBUG
+/*
+finalIndex and readyForNextPacket are used to tell when the server is ready
+to receive more messages.
+*/
 int finalIndex;
 int readyForNextPacket = NOTREADY;
+
+
 typedef struct queueElem {
-	char* robotCommand;	//Cammand to send to robot--Not parsed
+	char* robotCommand;	//Command to send to robot--Not parsed
 	uint32_t ID; //ID of client
 
 	struct sockaddr_in * clientAddress;
