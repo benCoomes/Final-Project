@@ -1,6 +1,7 @@
 #include "clientMessenger.h"
 #include "utility.h"
 #include "setupClientSocket.inc"
+#include "Compression.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -265,8 +266,19 @@ void storeData(commandResponse response, char *command)
     memset(fileName, 0x00, 50);
 
     /* Create file name based on command type */
-    if(strstr(command, "GET IMAGE") != NULL)
+    if(strstr(command, "GET IMAGE") != NULL) {
         sprintf(fileName, "image-%d.jpg", imageCount++);
+        uint32_t len = messageLen;
+        uint32_t newLen = 0;
+        char *comp = charDecompress_C((char *) fullResponse, len, &newLen);
+        if(newLen != 0) {
+            free(fullResponse);
+            fullResponse = comp;
+            messageLen = newLen;
+        } else {
+            plog("Invalid decompress in storeData().");
+        }
+    }
     else if(strstr(command, "GET DGPS") != NULL)
         sprintf(fileName, "DGPS-%d.txt", DGPSCount++);
     else if(strstr(command, "GET GPS") != NULL)

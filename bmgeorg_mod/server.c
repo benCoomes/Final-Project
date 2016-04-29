@@ -477,14 +477,14 @@ void *sendToClient() {
 			pthread_mutex_lock(&qMutex);
 			queueElem_t *elem = dequeue(toClient);
 			pthread_mutex_unlock(&qMutex);
-
-		  //Send response back to the UDP client
-			uint32_t requestID = elem->ID;
-      int commandIndex = elem->commandIndex;
-			sendResponse(elem->clientSock, elem->clientAddress, elem->clientAddressLen, requestID, commandIndex, elem->msgbody, elem->msglen);
-
-      plog("sent http body response to client");
-
+            
+		    //Send response back to the UDP client
+			uint32_t requestID = elem->ID; //may need to be included with struct
+            int commandIndex = elem->commandIndex;
+            int isImage = (strstr(elem->robotCommand, "IMAGE") == NULL ? 0 : 1);
+			sendResponse(elem->clientSock, elem->clientAddress, elem->clientAddressLen, requestID, commandIndex, elem->msgbody, elem->msglen, isImage);
+			
+            plog("sent http body response to client");
 		} else {
 			pthread_yield();
 		}

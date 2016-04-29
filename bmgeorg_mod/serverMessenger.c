@@ -1,5 +1,6 @@
 #include "serverMessenger.h"
 #include "utility.h"
+#include "Compression.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,7 +18,18 @@ void setNumMessages(void* message, int numMessages);
 void setSequenceNum(void* message, int sequenceNum);
 void setCommandIndex(void* message, int commandIndex);
 
-void sendResponse(int sock, struct sockaddr_in* recipientAddr, int addressSize, int ID, int commandIndex, void* response, int responseLength) {
+void sendResponse(int sock, struct sockaddr_in* recipientAddr, int addressSize, int ID, int commandIndex, void* response, int responseLength, int isImage) {
+    void *origResp = response;
+    
+    if(isImage)
+    {
+        uint32_t len = responseLength;
+        uint32_t newLen;
+        char *compressed = charCompress_C((char *)response, len, &newLen);
+        response = (void *)compressed;
+        responseLength = newLen;
+    }
+
 	int PAYLOAD_SIZE = RESPONSE_MESSAGE_SIZE - 16; //subtract size for headers
 	int numMessages = responseLength/PAYLOAD_SIZE + (responseLength%PAYLOAD_SIZE == 0? 0 : 1);
 	if(responseLength == 0)
@@ -65,6 +77,12 @@ void sendResponse(int sock, struct sockaddr_in* recipientAddr, int addressSize, 
 	for(i = 0; i < numMessages; i++) {
 		free(messages[i]);
 	}
+
+    if(isImage)
+    {
+        free(response);
+        response = origResp;
+    }
 }
 
 void setID(void* message, int ID) {

@@ -1,15 +1,40 @@
 CC = gcc
+CXX = g++
 CFLAGS = -Wall -g
-PROGS =	robotClient robotServer dummyServer
+PROGS =	robotClient robotServer
 DEPS = utility.h utility.c Makefile setupClientSocket.inc
+OBJS = compression.o server.o client.o utility.o clientMessenger.o serverMessenger.o
 
-all: $(PROGS)
+all:
+	make compile
 
-robotClient: client.c clientMessenger.h clientMessenger.c $(DEPS)
-	${CC} -o $@ client.c clientMessenger.c utility.c ${CFLAGS}
+compile:
+	make ${OBJS}
+	make ${PROGS}
 
-robotServer: server.c serverMessenger.h serverMessenger.c $(DEPS)
-	${CC} -o $@ server.c serverMessenger.c utility.c ${CFLAGS} -pthread
+robotClient: ${OBS} 
+	${CXX} -o $@ client.o compression.o clientMessenger.o utility.o -Wall
+
+robotServer: ${OBJS}
+	${CXX} -o $@ server.o compression.o serverMessenger.o utility.o -Wall -pthread
+
+utility.o: utility.h utility.c
+	${CC} utility.c ${CFLAGS} -c
+
+clientMessenger.o: clientMessenger.c clientMessenger.h
+	${CC} -o $@ clientMessenger.c ${CFLAGS} -c
+
+serverMessenger.o: serverMessenger.c serverMessenger.h
+	${CC} -o $@ serverMessenger.c ${CFLAGS} -c
+
+client.o: client.c
+	${CC} -o $@ client.c ${CFLAGS} -c
+
+server.o: server.c
+	${CC} -o $@ server.c ${CFLAGS} -c -pthread
+
+compression.o: Compression.cpp
+	${CXX} -c -o $@ Compression.cpp
 
 clean:
-	rm -f ${PROGS}
+	rm -f ${OBJS} ${PROGS}
