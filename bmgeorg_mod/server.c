@@ -206,7 +206,7 @@ int main(int argc, char *argv[])
 			element->clientSock = clientSock;
 			element->clientAddress = &clientAddress;
 			element->clientAddressLen = clientAddressLen;
-            element->commandIndex = commandIndex++;            
+            element->commandIndex = commandIndex++;
 
 			element->robotCommand = malloc(commandStringSize + 1);
 			strncpy(element->robotCommand,toRobotPtr,commandStringSize);
@@ -320,9 +320,9 @@ void flushBuffersAndExit() {
 	exit(0);
 }
 
-
-
-/*Send commands from robotServer to the actual robot server*/
+/* This routine removes element from command queue and formats the http
+  request to be sent. Then proceeds to send the message, and recieve a response.
+  The response is then entered into a queue to be sent back to the client. */
 void *sendRecvRobot() {
 	while(1) {
 		//Added for Megan
@@ -336,9 +336,8 @@ void *sendRecvRobot() {
 
 		if (isEmpty(toRobot) == FALSE) {
 			pthread_mutex_lock(&qMutex);
-			elem = dequeue(toRobot);
+			elem = dequeue(toRobot);						//dequeue command that is to be sent
 			pthread_mutex_unlock(&qMutex);
-
 
 
 			char* requestStr = getRequestStr(*elem);
@@ -356,7 +355,7 @@ void *sendRecvRobot() {
 			char* httpRequest = generateHTTPRequest(robotAddress, robotID, requestStr, imageID);
 
 
-
+			//calculate time that it take for message to be sent and received.
 			timeSpent = getTime();
 
 			if(write(robotSock, httpRequest, strlen(httpRequest)) != strlen(httpRequest)) {
@@ -368,10 +367,12 @@ void *sendRecvRobot() {
 
 			timeSpent = getTime() - timeSpent;
 
+
 			//Calculate wait time (dist - time spent in sendRequest).
 			if(strstr(requestStr, "MOVE") != NULL){
-				double dist = requestStr[7] - 48; //7th character is the distance
+				double dist = requestStr[7] - 48; //7th character is the distance, -48 to convert from ascii
 				printf("Dist = %f\n",dist);
+
 				if(dist > timeSpent) {
 					 sleepTime = dist - timeSpent;
 
@@ -386,9 +387,10 @@ void *sendRecvRobot() {
 					 usleep(waitUSeconds);
 				}
 			}
+
+			//Calculate wait time (turnAngle/(M_PI/4) - time spent in sendRequest).
 			else if (strstr(requestStr, "TURN") != NULL){
 				const double actualSpeed = .89*M_PI/4;
-			      //Calculate wait time (turnAngle/(M_PI/4) - time spent in sendRequest).
 
 				char* requestPtr = requestStr;
 				int spaceCounter;
@@ -398,7 +400,7 @@ void *sendRecvRobot() {
 					}
 					requestPtr++;
 				}
-				//turnAngle = atof(requestPtr);
+
 				sscanf(requestPtr,"TURN %lf %lf",&turnSpeed,&turnAngle);
 				printf("Angle = %s\n",requestPtr);
 				printf("Turn Angle = %lf\n", turnAngle);
@@ -419,7 +421,6 @@ void *sendRecvRobot() {
 			}
 
 
-
 			//Read response from Robot
 			int pos = 0;
 			char* httpResponse = malloc(MAXLINE);
@@ -433,25 +434,17 @@ void *sendRecvRobot() {
 
 			//Parse Response from Robot
 			char* httpBody = strstr(httpResponse, "\r\n\r\n");
-	        int httpBodyLength;
-	        if(httpBody == NULL)
-	        {
-	            httpBody = httpResponse;
-	            httpBodyLength = 0;
-	        }
-	        else
-	        {
-	            httpBody += 4;
-	            httpBodyLength = (httpResponse + pos) - httpBody;
-	        }
-			/*
-			plog("http body of %d bytes", httpBodyLength);
-			plog("http body: ");
-			#ifdef DEBUG
-			for(j = 0; j < httpBodyLength; j++)
-				fprintf(stderr, "%c", httpBody[j]);
-			#endif
-			*/			
+      int httpBodyLength;
+      if(httpBody == NULL)
+      {
+          httpBody = httpResponse;
+          httpBodyLength = 0;
+      }
+      else
+      {
+          httpBody += 4;
+          httpBodyLength = (httpResponse + pos) - httpBody;
+      }
 
 			elem->msgbody = httpBody;
 			elem->msglen = httpBodyLength;
@@ -460,46 +453,45 @@ void *sendRecvRobot() {
 
 			plog("freed http response");
 
-            if(strstr(requestStr, "GET") != NULL){
-    			pthread_mutex_lock(&qMutex);
-	    		enqueue(toClient, elem);
-		    	pthread_mutex_unlock(&qMutex);
-            }
+      if(strstr(requestStr, "GET") != NULL){
+				pthread_mutex_lock(&qMutex);
+				enqueue(toClient, elem);
+		  	pthread_mutex_unlock(&qMutex);
+      }
 
-            if(elem->commandIndex == finalIndex){
-                readyForNextPacket = READY;
-            }
-		} else {
-			pthread_yield();
+      if(elem->commandIndex == finalIndex){
+        readyForNextPacket = READY;
+      }
+			} else {
+				pthread_yield();
+			}
 		}
-	}
-return NULL;
+	return NULL;
 }
 
+/* This routine removes the element from the queue to be sent to the client,
+   then sends the message to the client when able. */
 void *sendToClient() {
 	while(1) {
 		if (isEmpty(toClient) == FALSE) {
 			pthread_mutex_lock(&qMutex);
 			queueElem_t *elem = dequeue(toClient);
 			pthread_mutex_unlock(&qMutex);
-            
-		    //Send response back to the UDP client
-			uint32_t requestID = elem->ID; //may need to be included with struct
-            int commandIndex = elem->commandIndex;
-			sendResponse(elem->clientSock, elem->clientAddress, elem->clientAddressLen, requestID, commandIndex, elem->msgbody, elem->msglen);
-			
-            plog("sent http body response to client");
 
+		  //Send response back to the UDP client
+			uint32_t requestID = elem->ID;
+      int commandIndex = elem->commandIndex;
+			sendResponse(elem->clientSock, elem->clientAddress, elem->clientAddressLen, requestID, commandIndex, elem->msgbody, elem->msglen);
+
+      plog("sent http body response to client");
 
 		} else {
 			pthread_yield();
 		}
 
 	}
-return NULL;
+	return NULL;
 }
-
-
 
 //Queue Code.
 
