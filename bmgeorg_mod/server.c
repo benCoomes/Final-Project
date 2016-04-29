@@ -353,10 +353,7 @@ void *sendRecvRobot() {
 				quit("could not connect to robot");
 			}
 
-			//plog("Set up robot socket: %d", robotSock);
-
 			char* httpRequest = generateHTTPRequest(robotAddress, robotID, requestStr, imageID);
-			//plog("Created http request: %s", httpRequest);
 
 
 
@@ -368,11 +365,8 @@ void *sendRecvRobot() {
 			plog("Sent http request to robot");
 
 			free(httpRequest);
-			//plog("freed http request");
 
 			timeSpent = getTime() - timeSpent;
-
-			//plog("Time spent sending request and getting response: %lf", timeSpent);
 
 			//Calculate wait time (dist - time spent in sendRequest).
 			if(strstr(requestStr, "MOVE") != NULL){
@@ -436,15 +430,7 @@ void *sendRecvRobot() {
 				pos += n;
 				httpResponse = realloc(httpResponse, pos+MAXLINE);
 			}
-			/*
-			plog("Received http response of %d bytes", pos);
-			plog("http response: ");
-			#ifdef DEBUG
-			int j;
-			for(j = 0; j < pos; j++)
-				fprintf(stderr, "%c", httpResponse[j]);
-			#endif
-			*/
+
 			//Parse Response from Robot
 			char* httpBody = strstr(httpResponse, "\r\n\r\n");
 	        int httpBodyLength;
