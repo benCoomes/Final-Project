@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 //Below added - Ben
-#define DEBUG
+//#define DEBUG
 
 void _quit(const char *fmt, ...) {
     va_list arg;

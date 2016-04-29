@@ -177,8 +177,8 @@ void recvData(int ID, commandNode *commandList, double timeout) {
 /*      plog("ID: %d", extractMessageID(message));
 	    plog("Total: %d", numMessages);
 	    plog("Sequence: %d", seqNum);
-*/      plog("Command Index: %d", commandIndex);
-/*	    plog("Length: %d", messageLength);
+        plog("Command Index: %d", commandIndex);
+	    plog("Length: %d", messageLength);
 */
         /* Check if this is a valid command index */
         if(commandIndex >= numCommands)
@@ -215,6 +215,7 @@ void recvData(int ID, commandNode *commandList, double timeout) {
         if(responses[commandIndex].numReceived ==
            responses[commandIndex].numMessages)
             setCommandReceived(commandList, commandIndex);
+            fprintf(stderr, "Received message for command %d.\n", commandIndex);
 
         //stop timer
 	    stopTimer();
