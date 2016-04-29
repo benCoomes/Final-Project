@@ -41,7 +41,5 @@ clean:
 	rm -f ${OBJS} ${PROGS}
 
 backup:
-	rm -f bcoomes_jdunste_mefowle_jsarasu.tar.gz
-	tar -cf bcoomes_jdunste_mefowle_jsarasu.tar *
-	gzip -f bcoomes_jdunste_mefowle_jsarasu.tar
-
+	rm -f bcoomes_jdunste_mefowle_jsarasu.tgz
+	tar -cvzf bcoomes_jdunste_mefowle_jsarasu.tgz *
