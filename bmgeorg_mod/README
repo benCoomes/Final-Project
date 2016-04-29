@@ -14,7 +14,7 @@ _______________________________________________________________________________
 
 DESCRIPTION
 
-Our system consists of two programs, a client and a middleware. Working 
+Our system consists of two programs, a client and a middleware server. Working 
 together, they instruct a virtual robot to move in a series of polygonal 
 shapes and to send information about its position. The position data is saved to
 files in the directory where robotClient is run. Images are sent back as well as
@@ -70,8 +70,17 @@ This command list is sent by the client to the middleware, which constructs
 a queue of commands to process.  
 
 
-.... middle ware stuff ....
-
+The middleware server works like a factory. Three functions are threaded to have
+all running at the same time. All communication is done through queues or global
+variables. The queues pass elements that change between each client and command.
+Global variables are used with constants like the robots information. The main 
+function takes the message sent by the client, decompresses it, and parses the 
+elements. These elements are added to the toRobot queue for the sendRecvRobot 
+thread to handle. sendRecvRobot handles all communication to and from the robot. 
+It loops forever waiting for elements to appear in its queue. When elements 
+appear, it parses them into a HTTP message and sends it to the robot. Responses
+are parsed and put on the toClient queue. sendToClient takes these elements, 
+compresses them, and sends them back to the client.
 
 The client waits to recieve data from the middleware. It stops waiting when a 
 timeout is reached or when all of the expected data has been recieved. Data 
